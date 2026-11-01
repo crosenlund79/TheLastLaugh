@@ -3,6 +3,7 @@ extends Node
 
 signal thought(text: String)
 signal speech(text: String)
+signal radio(speaker: String, text: String)
 
 const SETTINGS_PATH := "user://settings.cfg"
 
@@ -17,6 +18,9 @@ var people: Array = []        # every Person in the carnival
 var players: Array = []       # player nodes (single player for now, co-op later)
 var fog_banks: Array = []
 var light_points: Array = []  # Vector3 positions of bright lights (stealth)
+var safehouses := {}          # profession -> {door, slots, inside_center}
+var dread := 0.0              # 0 = cheerful carnival, 1 = full nightmare
+var radio_log: Array = []
 var run_time := 0.0
 var running := false
 var flags := {}
@@ -43,6 +47,9 @@ func reset_run() -> void:
 	players.clear()
 	fog_banks.clear()
 	light_points.clear()
+	safehouses = {}
+	dread = 0.0
+	radio_log.clear()
 	run_time = 0.0
 	running = true
 	flags = {}
@@ -102,6 +109,19 @@ func noise_event(pos: Vector3, radius: float, source = null) -> void:
 				p.hear_noise(pos, source)
 
 
+## Staff radio chatter, heard everywhere (HUD + static).
+func radio_call(speaker: String, text: String) -> void:
+	radio_log.append([speaker, text])
+	radio.emit(speaker, text)
+
+
+## Every staff member of a profession who is still human heads for their safe house.
+func order_retreat(profession: String) -> void:
+	for p in people:
+		if is_instance_valid(p) and p.role == profession:
+			p.start_retreat()
+
+
 func think(text: String, id: String = "") -> void:
 	if id != "":
 		if _thought_ids.has(id):
@@ -122,7 +142,7 @@ func compute_score() -> Dictionary:
 	var rescue_pts: int = s.rescued * 400
 	lines.append(["People rescued (%d x 400)" % s.rescued, rescue_pts]); total += rescue_pts
 	if worker_rescued:
-		lines.append(["Maintenance worker rescued", 600]); total += 600
+		lines.append(["Maintenance staff rescued", 600]); total += 600
 	if escaped and not smg_acquired:
 		lines.append(["Escaped without the SMG", 300]); total += 300
 	if innocents_killed > 0:

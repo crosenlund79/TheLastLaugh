@@ -20,6 +20,41 @@ var pause_panel: Control
 var death_panel: Control
 var results_panel: Control
 var results_text: Label
+var post: ColorRect
+var radio_box: PanelContainer
+var radio_lbl: Label
+var _radio_t := 0.0
+var _fog_amt := 0.0
+
+const POST_SHADER := """
+shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+uniform float fog_amt = 0.0;
+uniform float dread = 0.0;
+uniform float daze = 0.0;
+uniform float hurt = 0.0;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void fragment() {
+	vec2 uv = SCREEN_UV;
+	float w = fog_amt * 0.006 + daze * 0.012;
+	uv += vec2(sin(uv.y * 18.0 + TIME * 2.0), cos(uv.x * 14.0 + TIME * 1.7)) * w;
+	float ca = 0.0008 + fog_amt * 0.004 + daze * 0.006 + dread * 0.0012;
+	vec3 c;
+	c.r = texture(screen_tex, uv + vec2(ca, 0.0)).r;
+	c.g = texture(screen_tex, uv).g;
+	c.b = texture(screen_tex, uv - vec2(ca, 0.0)).b;
+	float lum = dot(c, vec3(0.299, 0.587, 0.114));
+	c = mix(c, vec3(lum) * vec3(0.92, 0.88, 1.12), dread * 0.38);
+	c = mix(c, c * vec3(1.15, 0.75, 1.3) + vec3(0.03, 0.0, 0.05), fog_amt * 0.55);
+	vec2 d = SCREEN_UV - 0.5;
+	float r = length(d * vec2(1.0, 0.85));
+	c *= 1.0 - smoothstep(0.3, 0.85, r) * (0.35 + dread * 0.35 + fog_amt * 0.3);
+	float pulse = 0.6 + 0.4 * sin(TIME * 6.0);
+	c = mix(c, vec3(0.45, 0.0, 0.05), hurt * pulse * smoothstep(0.25, 0.75, r));
+	c += (hash(SCREEN_UV * 731.0 + TIME) - 0.5) * (0.025 + dread * 0.035);
+	COLOR = vec4(c, 1.0);
+}
+"""
 
 var _thoughts: Array = []
 var _thought_t := 0.0
@@ -34,6 +69,16 @@ func _ready() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+
+	post = ColorRect.new()
+	post.set_anchors_preset(Control.PRESET_FULL_RECT)
+	post.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sh := Shader.new()
+	sh.code = POST_SHADER
+	var sm := ShaderMaterial.new()
+	sm.shader = sh
+	post.material = sm
+	root.add_child(post)
 
 	fog_tint = _rect(Color(0.5, 0.1, 0.7, 0.0))
 	daze = _rect(Color(0.3, 0.9, 0.5, 0.0))
@@ -80,6 +125,24 @@ func _ready() -> void:
 	ammo_lbl = _label("", 30, Color(1, 1, 1))
 	ammo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_place(ammo_lbl, Control.PRESET_BOTTOM_RIGHT, Vector2(-324, -66), Vector2(300, 44))
+
+	radio_box = PanelContainer.new()
+	var rsb := StyleBoxFlat.new()
+	rsb.bg_color = Color(0.02, 0.08, 0.04, 0.85)
+	rsb.border_color = Color(0.3, 1, 0.5, 0.8)
+	rsb.set_border_width_all(2)
+	rsb.set_corner_radius_all(6)
+	rsb.content_margin_left = 14
+	rsb.content_margin_right = 14
+	rsb.content_margin_top = 8
+	rsb.content_margin_bottom = 8
+	radio_box.add_theme_stylebox_override("panel", rsb)
+	radio_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(radio_box)
+	_place(radio_box, Control.PRESET_CENTER_BOTTOM, Vector2(-380, -170), Vector2(760, 70))
+	radio_lbl = _label("", 17, Color(0.6, 1, 0.65), radio_box)
+	radio_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	radio_box.visible = false
 
 	_build_pause()
 	_build_death()
@@ -239,7 +302,18 @@ func _process(delta: float) -> void:
 		else:
 			stealth_lbl.text = "[ LOUD ]"
 			stealth_lbl.add_theme_color_override("font_color", Color(1, 0.6, 0.3))
-		daze.color.a = clampf(player.disorient * 0.18, 0.0, 0.35)
+		daze.color.a = clampf(player.disorient * 0.08, 0.0, 0.2)
+	if _radio_t > 0.0:
+		_radio_t -= delta
+		radio_box.modulate.a = clampf(_radio_t, 0.0, 1.0)
+		if _radio_t <= 0.0:
+			radio_box.visible = false
+	var sm: ShaderMaterial = post.material
+	sm.set_shader_parameter("fog_amt", _fog_amt)
+	sm.set_shader_parameter("dread", GameState.dread)
+	if player:
+		sm.set_shader_parameter("daze", clampf(player.disorient, 0.0, 1.5))
+		sm.set_shader_parameter("hurt", clampf(1.0 - player.health / 45.0, 0.0, 1.0) if not player.dead else 0.0)
 	_flash = maxf(0.0, _flash - delta * 1.5)
 	dmg_flash.color.a = _flash * 0.5
 	# thoughts
@@ -263,7 +337,14 @@ func set_objective(t: String) -> void:
 
 
 func set_fog(a: float) -> void:
-	fog_tint.color.a = a
+	_fog_amt = a
+
+
+func show_radio(speaker: String, text: String) -> void:
+	radio_lbl.text = "[RADIO] %s:\n\"%s\"  *kssshhh*" % [speaker, text]
+	radio_box.visible = true
+	_radio_t = 7.0
+	Sfx.play_ui("radio", -2.0)
 
 
 func show_thought(t: String) -> void:

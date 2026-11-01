@@ -49,7 +49,7 @@ var focus = null
 func _ready() -> void:
 	add_to_group("player")
 	collision_layer = 2
-	collision_mask = 1 | 4
+	collision_mask = 1 | 4 | 16
 	shape = CollisionShape3D.new()
 	capsule = CapsuleShape3D.new()
 	capsule.radius = 0.35
@@ -247,7 +247,7 @@ func _fire(w: Dictionary) -> void:
 		var fwd := -cam.global_basis.z
 		var spread: float = w.spread * (1.6 if not is_on_floor() else (0.6 if crouching else 1.0))
 		var d := (fwd + cam.global_basis.x * randf_range(-spread, spread) + cam.global_basis.y * randf_range(-spread, spread)).normalized()
-		var q := PhysicsRayQueryParameters3D.create(origin, origin + d * 90.0, 1 | 4)
+		var q := PhysicsRayQueryParameters3D.create(origin, origin + d * 90.0, 1 | 4 | 16)
 		q.exclude = [get_rid()]
 		var hit := space.intersect_ray(q)
 		var end_p: Vector3 = hit.position if hit else origin + d * 90.0
@@ -304,7 +304,7 @@ func _cycle(step: int) -> void:
 
 func _update_focus() -> void:
 	var origin := cam.global_position
-	var q := PhysicsRayQueryParameters3D.create(origin, origin - cam.global_basis.z * 3.2, 1 | 4 | 8)
+	var q := PhysicsRayQueryParameters3D.create(origin, origin - cam.global_basis.z * 3.2, 1 | 4 | 8 | 16)
 	q.exclude = [get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	focus = null

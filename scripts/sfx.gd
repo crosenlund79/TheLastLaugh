@@ -166,3 +166,37 @@ func _build_all() -> void:
 	sounds["boing"] = _gen(0.6, func(t: float, u: float):
 		boi[0] += TAU * (220.0 + 160.0 * sin(t * 28.0) * (1.0 - u)) / RATE
 		return sin(boi[0]) * exp(-t * 4.0) * 0.45)
+
+	# --- radio: squelch, garbled panicked voice, static tail
+	sounds["radio"] = _gen(2.6, func(t: float, u: float):
+		var v := 0.0
+		if t < 0.12:
+			v = sin(TAU * 1450.0 * t) * 0.35  # squelch beep
+		elif t < 2.2:
+			# syllable-rate envelope over band-limited buzz = "voice" through a cheap radio
+			var syl := maxf(0.0, sin(t * 23.0 + sin(t * 7.0) * 2.0))
+			var f0 := 180.0 + 60.0 * sin(t * 5.0) + 90.0 * u
+			var buzz := signf(sin(TAU * f0 * t)) * 0.3 + sin(TAU * f0 * 3.0 * t) * 0.2
+			v = (buzz * syl + randf_range(-1, 1) * 0.18) * 0.5
+			if t > 1.6:
+				v *= 1.0 + randf_range(-1, 1) * (t - 1.6) * 3.0  # breaking up
+		else:
+			v = randf_range(-1, 1) * 0.3 * (1.0 - (t - 2.2) / 0.4)
+		return clampf(v, -0.9, 0.9))
+
+	# looping low drone + whispery hiss that follows each fog bank
+	var dr := [0.0, 0.0]
+	var drone := _gen(4.0, func(t: float, u: float):
+		dr[0] += TAU * (55.0 + 3.0 * sin(TAU * t * 0.5)) / RATE
+		dr[1] = lerpf(dr[1], randf_range(-1, 1), 0.08)
+		var swell := 0.6 + 0.4 * sin(TAU * t * 0.25)
+		return (sin(dr[0]) * 0.35 + sin(dr[0] * 1.5) * 0.15 + dr[1] * 0.5 * swell) * 0.6)
+	drone.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	drone.loop_end = int(4.0 * RATE)
+	sounds["fog_drone"] = drone
+
+	sounds["door"] = _gen(0.6, func(t: float, u: float):
+		return (sin(TAU * (90.0 - 40.0 * u) * t) * 0.6 + randf_range(-1, 1) * 0.2) * exp(-t * 5.0))
+	sounds["knock"] = _gen(0.7, func(t: float, u: float):
+		var k := fmod(t, 0.22)
+		return (sin(TAU * 140.0 * k) + randf_range(-1, 1) * 0.4) * exp(-k * 40.0) * 0.8 if t < 0.66 else 0.0)
