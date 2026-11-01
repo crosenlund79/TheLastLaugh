@@ -20,19 +20,26 @@ const CORRUPT := Color(0.32, 0.08, 0.42)
 const CLOWN_LINES := ["Honk honk!", "Wanna see a trick?", "Hee hee!", "Smile, friend!", "Balloon? No? Okay!"]
 const SCARED_LINES := ["Oh god, oh god!", "Stay away from me!", "What happened to him?!", "RUN!", "Help!"]
 const WORKER_RADIO := [
-	"Maintenance, it's %s— the fog— it's IN me— everybody get to the shed! Lock the—",
-	"%s here... can't see... so purple... GET TO THE SHED... hee... hee hee...",
-	"Mayday, it's %s! Walked right into it— shed, go to the shed, don't wait for m—",
+	"Maintenance %s to base... something's wrong with this fog... I can't—",
+	"Base, Maintenance %s... it's in my lungs... it's... it's FUNNY... get to the sh—",
+	"Maintenance %s! Fog's all over the rides— everybody to the shed, don't wait for m—",
 ]
 const GUARD_RADIO := [
-	"Security, %s! The fog's got me— fall back to the office! FALL BACK! It's... so funny...",
-	"%s to all units— I'm compromised— back to the office, lock the do— hehehe",
-	"This is %s— can't hold it— everyone back to security, NOW— haaa ha ha",
+	"Security %s to all units... the fog— it's on me— fall back to the office— I can't—",
+	"Security %s... purple... everywhere... lock the office do— hehe— hehehe—",
+	"This is Security %s— compromised— everyone back to the office, NOW— haaa—",
 ]
+const CALLSIGNS := ["one", "two", "three"]
 const SAFE_LINES := {
-	"worker": ["Is it still out there?", "Shut the door! SHUT IT!", "I heard them on the radio... the laughing...", "We fix rides. We're not supposed to... this.", "If the gate's open, I'll make a run for it with you."],
+	"worker": ["Is it still out there?", "Shut the door! SHUT IT!", "We fix rides. We're not supposed to... this.", "If the gate's open, I'll make a run for it with you.", "The shotgun's on the bench. Take it. Take the gate key. Just go."],
 	"guard": ["We hold here until help comes.", "Don't let them in. Not even the funny ones.", "Radio's just static and giggling now.", "Open the main gate and I'll walk out with you. Not before."],
 }
+const LOST_LINES := {
+	"worker": ["%s just... stopped answering. Then the giggling started.", "I heard %s on the radio. He sounded like he was laughing.", "We should go back for %s... shouldn't we?"],
+	"guard": ["%s was the best shot we had. Now he's one of them.", "Did you see %s out there? Tell me you didn't.", "%s's last call... I keep hearing it."],
+}
+const CHAT_LINES := ["Did you try the cotton candy?", "The carousel's lovely tonight!", "Let's ride the Sky Wheel next!", "Look, a juggler!", "I won a goldfish last year.", "Where's that fog coming from?", "These clowns are hilarious.", "Smells like popcorn!"]
+const TRICKS := ["spin", "balloon"]
 
 # identity
 var role := "clown"
@@ -80,6 +87,11 @@ var flower_given := false
 var _duty_i := 0
 var _duty_work := 0.0
 var _hinted := false
+var _panic_t := 0.0
+var _chat_with = null
+var _trick_t := 0.0
+var _balloon: MeshInstance3D
+var _drop_cd := 4.0
 
 # navigation
 var _path := PackedVector3Array()
@@ -175,13 +187,14 @@ func setup_staff(p_name: String, idx: int, points: Array, area: String, has_key:
 	staff_index = idx
 	duty_points = points
 	duty_area = area
-	keyholder = has_key
+	keyholder = false
 	_duty_i = randi() % maxi(1, points.size())
-	if keyholder:
-		var ring := Build.torus(pelvis, 0.05, 0.08, Vector3(P.tw * 0.8, -0.05, -0.1), Build.mat(Color(1, 0.85, 0.2), 2.0), Vector3(0, 0, PI / 2))
+	if role == "worker":
+		# every maintenance worker carries a shed key on his belt
+		var ring := Build.torus(pelvis, 0.05, 0.08, Vector3(P.tw * 0.8, -0.05, -0.1), Build.mat(Color(0.8, 0.82, 0.88), 1.2), Vector3(0, 0, PI / 2))
 		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		for k in 2:
-			Build.box(pelvis, Vector3(0.02, 0.12, 0.04), Vector3(P.tw * 0.8 + 0.02, -0.15 - k * 0.03, -0.12 + k * 0.05), Color(1, 0.85, 0.2), false, 2.0)
+			Build.box(pelvis, Vector3(0.02, 0.12, 0.04), Vector3(P.tw * 0.8 + 0.02, -0.15 - k * 0.03, -0.12 + k * 0.05), Color(0.8, 0.82, 0.88), false, 1.2)
 
 
 func _build_rig() -> void:
@@ -715,6 +728,8 @@ func say(text: String, dur: float = 2.8) -> void:
 	speech_label.visible = true
 	_speech_t = dur
 	_say_cd = dur + 2.0
+	if _near_player(18.0):
+		Sfx.play("talk", global_position + Vector3.UP * _height, -6.0, 1.3 - P.head * 1.2)
 
 
 func _speech_tick(dt: float) -> void:
@@ -741,6 +756,14 @@ func _scan_threats() -> void:
 		if d < r and (d < 5.0 or _los(global_position + Vector3.UP * 1.5, p.global_position + Vector3.UP * 1.2)):
 			threat = p.global_position
 			fear = 1.0
+			if state == FOLLOW and d < 6.0 and _panic_t <= 0.0:
+				# escorted survivors can lose their nerve when one gets close
+				_panic_t = randf_range(1.8, 3.0)
+				if _scream_cd <= 0.0:
+					_scream_cd = 5.0
+					Sfx.play("scream", global_position + Vector3.UP * 1.5, -6.0, randf_range(0.9, 1.3))
+				say(["It's right THERE!", "No no no no!", "Get it away!"].pick_random(), 1.5)
+				return
 			if is_staff():
 				if state == DUTY and role == "worker":
 					start_retreat()
@@ -786,10 +809,14 @@ func _los(a: Vector3, b: Vector3) -> bool:
 func _pick_perform() -> void:
 	var opts: Array
 	if role == "clown":
-		opts = ["juggle", "honk", "wave", "flower", "trip", "wander", "wander", "juggle"]
+		opts = ["juggle", "honk", "wave", "flower", "trip", "wander", "wander", "juggle", "trick", "trick", "watch"]
 	else:
-		opts = ["wander", "wander", "idle", "wave"]
+		opts = ["wander", "wander", "chat", "chat", "watch", "idle", "wave"]
 	perform = opts.pick_random()
+	_chat_with = null
+	_trick_t = 0.0
+	if _balloon:
+		_balloon.visible = false
 	perform_t = randf_range(6.0, 11.0)
 	_act = 0.0
 	_trip = 0.0
@@ -797,16 +824,51 @@ func _pick_perform() -> void:
 	_drop_props()
 	move_target = home + Vector3(randf_range(-7, 7), 0, randf_range(-7, 7))
 	if perform == "juggle":
+		_ensure_balls()
 		for b in juggle_balls:
 			b.visible = true
 	elif perform == "flower":
 		flower.visible = true
 
 
-func _drop_props() -> void:
+func _drop_props(fall: bool = false) -> void:
+	if fall:
+		for b in juggle_balls:
+			if b.visible:
+				_drop_ball(b)
+		juggle_balls.clear()
+		if flower.visible:
+			var f := flower
+			f.reparent(get_tree().current_scene)
+			var tw := f.create_tween()
+			tw.tween_property(f, "global_position:y", 0.05, 0.5).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+			tw.parallel().tween_property(f, "rotation:x", PI / 2, 0.5)
+			flower = Node3D.new()
+			hand_r.add_child(flower)
 	for b in juggle_balls:
 		b.visible = false
 	flower.visible = false
+	if _balloon:
+		_balloon.visible = false
+
+
+## A dropped juggling ball bounces to the ground and stays there (it remembers).
+func _drop_ball(b: Node3D) -> void:
+	b.reparent(get_tree().current_scene)
+	var land: Vector3 = b.global_position + Vector3(randf_range(-0.8, 0.8), 0, randf_range(-0.8, 0.8))
+	land.y = 0.09
+	var tw := b.create_tween()
+	tw.tween_property(b, "global_position", land, 0.7).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	if _near_player(20.0):
+		Sfx.play("plip", b.global_position, -4.0, 0.6)
+
+
+func _ensure_balls() -> void:
+	while juggle_balls.size() < 3:
+		var k := juggle_balls.size()
+		var b := Build.sphere(rig, 0.09, Vector3.ZERO, Build.mat(CLOWN_COLORS[(k * 2 + randi()) % CLOWN_COLORS.size()], 0.8), 8)
+		b.visible = false
+		juggle_balls.append(b)
 
 
 func _do_perform(dt: float) -> void:
@@ -838,6 +900,49 @@ func _do_perform(dt: float) -> void:
 			var pl2 = GameState.nearest_player(global_position)
 			if pl2 and pl2.global_position.distance_to(global_position) < 16.0:
 				face_point = pl2.global_position
+		"juggle":
+			want_vel = Vector3.ZERO
+			_drop_cd -= dt
+			if _drop_cd <= 0.0:
+				_drop_cd = randf_range(5.0, 9.0)
+				if randf() < 0.3 and not juggle_balls.is_empty():
+					# whoops
+					var b = juggle_balls.pop_back()
+					_drop_ball(b)
+					if _say_cd <= 0.0:
+						say(["Whoops!", "Butterfingers!", "That was on purpose!"].pick_random(), 1.8)
+					Sfx.play("honk", global_position + Vector3.UP * _height, -6.0, 1.6)
+					if juggle_balls.size() < 2:
+						perform_t = 0.0
+			if fmod(_act, 0.36) < dt and _near_player(14.0):
+				Sfx.play("plip", global_position + Vector3.UP * _height, -16.0, randf_range(1.2, 1.6), 16.0)
+		"trick":
+			want_vel = Vector3.ZERO
+			_trick_t += dt
+			if fmod(_trick_t, 4.0) < dt:
+				_do_trick(TRICKS.pick_random())
+		"watch":
+			want_vel = Vector3.ZERO
+			var star = _nearest_performer()
+			if star:
+				face_point = star.global_position
+				if randf() < 0.004:
+					Sfx.play("clap", global_position + Vector3.UP * 1.4, -10.0, randf_range(0.9, 1.2), 18.0)
+					_act = 0.0
+					if randf() < 0.3 and _say_cd <= 0.0:
+						say(["Bravo!", "Ha! Again!", "Wonderful!"].pick_random(), 1.6)
+			else:
+				perform_t = minf(perform_t, 1.0)
+		"chat":
+			if _chat_with == null or not is_instance_valid(_chat_with) or _chat_with.hostile or _chat_with.dead or _chat_with.state != PERFORM:
+				_chat_with = _nearest_human(9.0)
+				if _chat_with == null:
+					perform = "wander"
+					return
+			if _go(_chat_with.global_position, P.speed * 0.6, 1.6):
+				face_point = _chat_with.global_position
+				if _say_cd <= 0.0 and randf() < 0.01:
+					say(CHAT_LINES.pick_random(), 2.6)
 		_:
 			want_vel = Vector3.ZERO
 	if perform == "honk":
@@ -848,6 +953,52 @@ func _do_perform(dt: float) -> void:
 				Sfx.play("honk", global_position + Vector3.UP * _height, -2.0, 1.4 - P.head * 1.5)
 			if randf() < 0.25 and _say_cd <= 0.0 and _near_player(14.0):
 				say(CLOWN_LINES.pick_random())
+
+
+func _do_trick(trick: String) -> void:
+	match trick:
+		"spin":
+			var tw := create_tween()
+			tw.tween_property(self, "facing", facing + TAU * 2.0, 1.1).set_trans(Tween.TRANS_BACK)
+			Sfx.play("boing", global_position + Vector3.UP, -6.0, randf_range(1.0, 1.4), 20.0)
+			if _say_cd <= 0.0 and randf() < 0.5:
+				say("Ta-daaa!", 1.5)
+		"balloon":
+			if _balloon == null:
+				_balloon = Build.sphere(rig, 0.1, Vector3(0, pelvis_y + P.torso * 0.8, -0.5 - P.tw), Build.mat(CLOWN_COLORS.pick_random(), 0.3), 10)
+			_balloon.visible = true
+			_balloon.scale = Vector3.ONE * 0.4
+			var tw2 := create_tween()
+			tw2.tween_property(_balloon, "scale", Vector3(3.5, 4.5, 3.5), 2.6)
+			tw2.tween_callback(func():
+				_balloon.visible = false
+				Sfx.play("pop", global_position + Vector3.UP * 1.5, 0.0)
+				if _say_cd <= 0.0:
+					say(["Oops! Hee hee!", "Pop goes the weasel!"].pick_random(), 1.5))
+
+
+func _nearest_performer():
+	var best = null
+	var bd := 12.0
+	for p in GameState.people:
+		if p != self and is_instance_valid(p) and p.role == "clown" and p.state == PERFORM and p.perform in ["juggle", "trick", "honk"]:
+			var d: float = p.global_position.distance_to(global_position)
+			if d < bd:
+				bd = d
+				best = p
+	return best
+
+
+func _nearest_human(r: float):
+	var best = null
+	var bd := r
+	for p in GameState.people:
+		if p != self and is_instance_valid(p) and not p.hostile and not p.dead and p.state == PERFORM and not p.is_staff():
+			var d: float = p.global_position.distance_to(global_position)
+			if d < bd:
+				bd = d
+				best = p
+	return best
 
 
 func _do_flee(_dt2: float) -> void:
@@ -879,6 +1030,13 @@ func _do_follow(dt: float) -> void:
 			start_retreat(true)
 		else:
 			state = HIDE
+		return
+	if _panic_t > 0.0:
+		_panic_t -= dt
+		var away := global_position - threat
+		away.y = 0
+		want_vel = away.normalized() * P.speed * 2.4 if away.length() > 0.1 else Vector3.ZERO
+		face_point = null
 		return
 	var tp: Vector3 = follow_target.global_position
 	var d := global_position.distance_to(tp)
@@ -1009,6 +1167,9 @@ func _do_retreat(dt: float) -> void:
 		if flashlight:
 			flashlight.visible = false
 		say("Made it... lock it, LOCK IT!" if role == "worker" else "Office secure.", 2.5)
+		var shd: Dictionary = GameState.safehouses.get(role, {})
+		if shd.has("door") and is_instance_valid(shd.door):
+			shd.door.secure()
 		if role == "worker":
 			# the crew is inside now and will let a living person in when they knock
 			GameState.flags["workers_sheltering"] = true
@@ -1033,7 +1194,11 @@ func _do_safe(dt: float) -> void:
 		if sh.has("door") and is_instance_valid(sh.door) and sh.door.opened and sh.door._hostile_near(14.0):
 			say("Close the door! They're RIGHT THERE!")
 		else:
-			say(SAFE_LINES[role].pick_random(), 3.5)
+			var lost: String = GameState.flags.get("lost_" + role, "")
+			if lost != "" and randf() < 0.5:
+				say((LOST_LINES[role].pick_random() as String) % lost, 3.5)
+			else:
+				say(SAFE_LINES[role].pick_random(), 3.5)
 		_say_cd = 9.0
 
 
@@ -1045,22 +1210,11 @@ func wants_door() -> bool:
 	return state == RETREAT or state == FOLLOW
 
 
-func _keyholder_hint() -> String:
-	for p in GameState.people:
-		if is_instance_valid(p) and p.keyholder and not p.dead and not p.fog_affected:
-			if p == self:
-				return ""
-			return "%s has the gate key — usually working near %s." % [p.staff_name, p.duty_area]
-	return ""
-
-
 # ================================================================ interaction
 func get_prompt(player) -> String:
 	if dead or hostile or rescued or state == TRANSFORM:
 		return ""
 	var gate_open: bool = GameState.flags.get("gate_open", false)
-	if role == "worker" and keyholder and not player.has_item("gate_key"):
-		return "[E] Ask %s for the gate key" % staff_name
 	if is_staff():
 		match state:
 			RETREAT:
@@ -1081,11 +1235,6 @@ func interact(player) -> void:
 	if dead or hostile or rescued or state == TRANSFORM:
 		return
 	var gate_open: bool = GameState.flags.get("gate_open", false)
-	if role == "worker" and keyholder and not player.has_item("gate_key"):
-		keyholder = false
-		player.give("gate_key")
-		say("The gate key... here. Get as many people out as you can.", 3.5)
-		return
 	if is_staff():
 		match state:
 			RETREAT:
@@ -1095,8 +1244,7 @@ func interact(player) -> void:
 				if gate_open and not guard_angry:
 					_follow(player, "Okay... okay. Right behind you.")
 				else:
-					var hint := _keyholder_hint() if role == "worker" else ""
-					say(hint if hint != "" and not player.has_item("gate_key") else SAFE_LINES[role].pick_random(), 3.5)
+					say(SAFE_LINES[role].pick_random(), 3.5)
 				return
 			FOLLOW:
 				state = DUTY
@@ -1110,13 +1258,12 @@ func interact(player) -> void:
 			if gate_open and not guard_angry:
 				_follow(player, "Gate's open? ...Fine. Lead the way. Gun stays with me.")
 			elif guard_angry:
-				say("You stay the hell away from me!")
+				say("Stay AWAY from me! I'm not your enemy!")
 			else:
-				say(["Move along. This SMG stays with me.", "Weird fog tonight. Keep your distance from it.", "You want my weapon? Over my dead body, pal.", "Clowns are acting funny. Funnier than usual."].pick_random(), 3.2)
+				say(["Back off. This SMG stays with me.", "Who are you? ...Keep your hands where I can see them.", "You want my weapon? Not a chance, pal.", "Something's off tonight. Don't come any closer."].pick_random(), 3.2)
 			return
-		var hint2 := _keyholder_hint()
-		_follow(player, (hint2 + " I'll tag along.") if hint2 != "" and not _hinted else "Sure, I'll come. Safer in numbers.")
-		_hinted = true
+		var shed_line := "You need the shed? I've got a key. Lead the way, I'll open it." if not GameState.flags.get("shed_unlocked", false) else "Sure, I'll come. Safer in numbers."
+		_follow(player, shed_line)
 		return
 	if state == FOLLOW:
 		state = HIDE
@@ -1142,18 +1289,15 @@ func _follow(player, line: String) -> void:
 func _guard_engage(dt: float) -> bool:
 	shoot_cd -= dt
 	aim_t -= dt
-	var pl = GameState.nearest_player(global_position)
+	# guards only ever shoot the fog-infected; an uninfected person is never hostile
 	var target = null
-	if guard_angry and pl and not pl.dead and pl.global_position.distance_to(global_position) < 25.0 and _los(global_position + Vector3.UP * 1.6, pl.global_position + Vector3.UP * 1.4):
-		target = pl
-	else:
-		var best := 16.0
-		for p in GameState.people:
-			if is_instance_valid(p) and p.hostile and not p.dead:
-				var d: float = p.global_position.distance_to(global_position)
-				if d < best and _los(global_position + Vector3.UP * 1.6, p.global_position + Vector3.UP * 1.2):
-					best = d
-					target = p
+	var best := 16.0
+	for p in GameState.people:
+		if is_instance_valid(p) and p.hostile and not p.dead:
+			var d: float = p.global_position.distance_to(global_position)
+			if d < best and _los(global_position + Vector3.UP * 1.6, p.global_position + Vector3.UP * 1.2):
+				best = d
+				target = p
 	if target == null:
 		return false
 	face_point = target.global_position
@@ -1163,8 +1307,7 @@ func _guard_engage(dt: float) -> bool:
 		if burst_left <= 0:
 			burst_left = 4
 		burst_left -= 1
-		var spread := 0.1 if target == pl else 0.06
-		_fire_at(target.global_position + Vector3.UP * 1.2, spread, 6.0 if target == pl else 12.0, "smg")
+		_fire_at(target.global_position + Vector3.UP * 1.2, 0.06, 12.0, "smg")
 	return true
 
 
@@ -1183,24 +1326,21 @@ func _begin_transform() -> void:
 	state = TRANSFORM
 	_state_t = 0.0
 	follow_target = null
-	_drop_props()
+	_drop_props(true)  # the juggler drops everything, freezes... and twitches
 	if flashlight:
 		flashlight.visible = false
 	Sfx.play("transform", global_position + Vector3.UP, 0.0)
-	if keyholder:
-		_drop_key("gate_key")
+	speech_label.visible = false
 	if was_staff:
-		# one last desperate radio call, then everyone of the same trade runs for it
-		var lines: Array = WORKER_RADIO if role == "worker" else GUARD_RADIO
-		var who := "%s (%s)" % [staff_name, "Maintenance" if role == "worker" else "Security"]
-		GameState.radio_call(who, (lines.pick_random() as String) % staff_name)
-		say("—get to the " + ("shed!" if role == "worker" else "office!"), 2.0)
-		GameState.flags["staff_alarm_" + role] = true
-		GameState.order_retreat(role)
-		if role == "worker":
-			_drop_shed_key_if_needed()
-	else:
-		speech_label.visible = false
+		GameState.flags["lost_" + role] = staff_name
+		if not GameState.flags.get("staff_alarm_" + role, false):
+			# the FIRST infection in each group gets one desperate call; survivors retreat
+			GameState.flags["staff_alarm_" + role] = true
+			var lines: Array = WORKER_RADIO if role == "worker" else GUARD_RADIO
+			var who := "%s (%s)" % [staff_name, "Maintenance " + CALLSIGNS[staff_index % 3] if role == "worker" else "Security " + CALLSIGNS[staff_index % 3]]
+			GameState.radio_call(who, (lines.pick_random() as String) % CALLSIGNS[staff_index % 3])
+			say("—get to the " + ("shed!" if role == "worker" else "office!"), 2.0)
+			GameState.order_retreat(role)
 	var pl = GameState.nearest_player(global_position)
 	if pl and pl.global_position.distance_to(global_position) < 35.0:
 		match role:
@@ -1224,17 +1364,10 @@ func _drop_key(kind: String) -> void:
 	var scene := get_tree().current_scene
 	if scene.has_method("spawn_pickup"):
 		scene.spawn_pickup(kind, p)
-	if kind == "gate_key":
+	if kind == "shed_key":
 		var pl = GameState.nearest_player(global_position)
 		if pl and pl.global_position.distance_to(global_position) < 40.0:
-			GameState.think("Something golden just hit the ground over there... the gate key?", "key_dropped")
-
-
-func _drop_shed_key_if_needed() -> void:
-	if GameState.flags.get("shed_unlocked", false) or GameState.flags.get("shed_key_dropped", false):
-		return
-	GameState.flags["shed_key_dropped"] = true
-	_drop_key("shed_key")
+			GameState.think("His keys... the maintenance shed.", "shed_key_dropped")
 
 
 func _do_transform(dt: float) -> void:
@@ -1455,11 +1588,11 @@ func take_damage(amount: float, from_pos: Vector3, attacker) -> void:
 			last_known = attacker.global_position
 	elif by_player and state != TRANSFORM:
 		if role == "guard":
+			# frightened, not hostile: he runs for the office instead of fighting back
 			guard_angry = true
-			if state == FOLLOW:
-				state = DUTY
-				follow_target = null
-			say("That's it, you're dead!")
+			follow_target = null
+			say("Don't shoot! What's WRONG with you?!")
+			start_retreat(true)
 		else:
 			fear = 1.0
 			threat = from_pos
@@ -1501,16 +1634,11 @@ func _die(impulse: Vector3, by_player: bool) -> void:
 		Sfx.play("honk", global_position + Vector3.UP, -2.0, 0.5)
 	else:
 		Sfx.play("hurt", global_position + Vector3.UP, 0.0)
-	# staff deaths go out over the radio too, if they were still human
-	if is_staff() and not fog_affected:
-		GameState.radio_call("%s (%s)" % [staff_name, "Maintenance" if role == "worker" else "Security"], "—AAGH— man down, man d—")
 	var scene := get_tree().current_scene
 	if scene.has_method("spawn_pickup"):
 		var dp := global_position + Vector3.UP * 0.6
-		if keyholder:
-			_drop_key("gate_key")
 		if role == "worker":
-			_drop_shed_key_if_needed()
+			_drop_key("shed_key")  # deterministic: a worker ALWAYS drops his key
 		elif role == "guard":
 			scene.spawn_pickup("smg", dp)
 			scene.spawn_pickup("ammo_smg", dp + Vector3(0.6, 0, 0.3))
@@ -1604,7 +1732,7 @@ func _animate(dt: float) -> void:
 				_tgt("elL", Vector3(0.9, 0, 0))
 				_tgt("elR", Vector3(0.9, 0, 0))
 				var center := Vector3(0, pelvis_y + P.torso * 0.9 + 0.35, -0.45 - P.tw)
-				for i in 3:
+				for i in juggle_balls.size():
 					var a := jt * 1.4 + i * TAU / 3.0
 					juggle_balls[i].position = center + Vector3(cos(a) * 0.35, absf(sin(a)) * 0.6, 0)
 			"honk":

@@ -200,3 +200,53 @@ func _build_all() -> void:
 	sounds["knock"] = _gen(0.7, func(t: float, u: float):
 		var k := fmod(t, 0.22)
 		return (sin(TAU * 140.0 * k) + randf_range(-1, 1) * 0.4) * exp(-k * 40.0) * 0.8 if t < 0.66 else 0.0)
+
+	# --- ambience: distant crowd murmur (several babbling "voices"), loops
+	var voices := []
+	for k in 6:
+		voices.append([randf_range(110.0, 260.0), randf_range(3.0, 6.0), randf() * TAU, 0.0])
+	var lpc := [0.0]
+	var crowd := _gen(6.0, func(t: float, u: float):
+		var v := 0.0
+		for vo in voices:
+			var syl := maxf(0.0, sin(t * vo[1] * TAU * 0.5 + vo[2]) * sin(t * 0.7 + vo[2]))
+			vo[3] += TAU * vo[0] * (1.0 + 0.15 * sin(t * 3.0 + vo[2])) / RATE
+			v += (signf(sin(vo[3])) * 0.3 + sin(vo[3] * 2.0) * 0.3) * syl
+		lpc[0] = lerpf(lpc[0], v + randf_range(-0.3, 0.3), 0.08)
+		var edge := minf(1.0, minf(t, 6.0 - t) * 2.0)
+		return lpc[0] * 0.25 * (0.7 + 0.3 * edge))
+	crowd.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	crowd.loop_end = int(6.0 * RATE)
+	sounds["crowd"] = crowd
+
+	# short babble when an NPC speaks
+	var tk := [0.0]
+	sounds["talk"] = _gen(0.55, func(t: float, u: float):
+		var syl := maxf(0.0, sin(t * 26.0))
+		tk[0] += TAU * (210.0 + 70.0 * sin(t * 9.0)) / RATE
+		return (signf(sin(tk[0])) * 0.25 + sin(tk[0] * 2.0) * 0.25) * syl * (1.0 - u) * 0.7)
+
+	# carousel music box (loops); corrupted rides play it detuned
+	var mb_notes := [72, 76, 79, 84, 79, 76, 74, 77, 81, 77, 74, 71, 72, 76, 79, 76]
+	var music_box := _gen(4.0, func(t: float, u: float):
+		var idx := int(t / 0.25) % mb_notes.size()
+		var nt := fmod(t, 0.25)
+		var f: float = 440.0 * pow(2.0, (mb_notes[idx] - 69) / 12.0)
+		return (sin(TAU * f * t) * 0.5 + sin(TAU * f * 2.0 * t) * 0.2 + sin(TAU * f * 3.01 * t) * 0.1) * exp(-nt * 9.0) * 0.5)
+	music_box.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	music_box.loop_end = int(4.0 * RATE)
+	sounds["music_box"] = music_box
+
+	sounds["plip"] = _gen(0.08, func(t: float, u: float): return sin(TAU * (900.0 - 400.0 * u) * t) * (1.0 - u) * 0.35)
+	sounds["pop"] = _gen(0.15, func(t: float, u: float): return (randf_range(-1, 1) * exp(-t * 60.0) + sin(TAU * 300.0 * t) * exp(-t * 40.0)) * 0.8)
+	sounds["ui_click"] = _gen(0.06, func(t: float, u: float): return sin(TAU * 1200.0 * t) * (1.0 - u) * 0.35)
+	sounds["ui_hover"] = _gen(0.04, func(t: float, u: float): return sin(TAU * 1800.0 * t) * (1.0 - u) * 0.15)
+	sounds["clap"] = _gen(0.6, func(t: float, u: float):
+		var k := fmod(t, 0.15)
+		return randf_range(-1, 1) * exp(-k * 70.0) * 0.5)
+	var cg := [0.0]
+	sounds["corrupt"] = _gen(2.5, func(t: float, u: float):
+		cg[0] += TAU * (70.0 - 35.0 * u + 6.0 * sin(t * 9.0)) / RATE
+		var saw := fmod(cg[0], TAU) / TAU - 0.5
+		var crack := randf_range(-1, 1) * (0.5 if randf() < 0.004 else 0.03)
+		return (saw * 0.6 + sin(cg[0] * 0.5) * 0.4 + crack) * sin(u * PI) * 0.8)

@@ -20,6 +20,7 @@ var pause_panel: Control
 var death_panel: Control
 var results_panel: Control
 var results_text: Label
+var death_text: Label
 var post: ColorRect
 var radio_box: PanelContainer
 var radio_lbl: Label
@@ -201,7 +202,9 @@ func _button(parent: Control, text: String, cb: Callable) -> Button:
 	b.text = text
 	b.custom_minimum_size = Vector2(280, 44)
 	b.add_theme_font_size_override("font_size", 20)
+	b.pressed.connect(func(): Sfx.play_ui("ui_click"))
 	b.pressed.connect(cb)
+	b.mouse_entered.connect(func(): Sfx.play_ui("ui_hover"))
 	parent.add_child(b)
 	return b
 
@@ -239,6 +242,7 @@ func _build_death() -> void:
 	death_panel = vb.get_meta("panel")
 	var l := _label("The carnival claims another guest.", 20, Color(0.9, 0.8, 1), vb)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	death_text = _label("", 17, Color(1, 1, 1), vb)
 	_button(vb, "Try Again", _restart)
 	_button(vb, "Main Menu", _main_menu)
 
@@ -362,24 +366,32 @@ func flash_damage(amount: float) -> void:
 
 func show_death() -> void:
 	await get_tree().create_timer(1.6).timeout
+	GameState.running = false
+	death_text.text = _summary(GameState.compute_score(), false)
 	death_panel.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
-func show_results(score: Dictionary) -> void:
+func _summary(score: Dictionary, escaped: bool) -> String:
 	var s: Dictionary = score.stats
 	var t: float = score.time
-	var txt := "Escape time:              %d:%02d\n" % [int(t) / 60, int(t) % 60]
-	txt += "People rescued:           %d\n" % s.rescued
-	txt += "Affected by the fog:      %d\n" % s.affected
-	txt += "Innocent people killed:   %d\n" % s.innocents_killed
-	txt += "Left behind:              %d of %d\n\n" % [s.remaining, s.total]
+	var txt := ("Escape time:                %d:%02d\n" if escaped else "Survived for:               %d:%02d\n") % [int(t) / 60, int(t) % 60]
+	txt += "People in the carnival:     %d\n" % s.total
+	txt += "  Rescued:                  %d\n" % s.rescued
+	txt += "  Affected by the fog:      %d\n" % s.affected
+	txt += "  Killed (unaffected):      %d\n" % s.casualties
+	txt += "  Still trapped inside:     %d\n" % s.trapped
+	txt += "Innocent people you killed: %d\n\n" % s.innocents_killed
 	for line in score.lines:
-		txt += "%-36s %+d\n" % [line[0], line[1]]
+		txt += "%-38s %+d\n" % [line[0], line[1]]
 	txt += "\nFINAL SCORE:  %d" % score.total
-	if s.remaining - s.affected > 0:
-		txt += "\n\n%d unaffected people are still inside the carnival." % (s.trapped)
-	results_text.text = txt
+	if escaped and s.trapped > 0:
+		txt += "\n\n%d people who never touched the fog are still in there." % s.trapped
+	return txt
+
+
+func show_results(score: Dictionary) -> void:
+	results_text.text = _summary(score, true)
 	results_panel.visible = true
 	pause_panel.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

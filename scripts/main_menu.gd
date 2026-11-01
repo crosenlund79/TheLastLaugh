@@ -87,7 +87,9 @@ func _button(parent: Control, text: String, cb: Callable) -> void:
 	b.text = text
 	b.custom_minimum_size = Vector2(300, 48)
 	b.add_theme_font_size_override("font_size", 22)
+	b.pressed.connect(func(): Sfx.play_ui("ui_click"))
 	b.pressed.connect(cb)
+	b.mouse_entered.connect(func(): Sfx.play_ui("ui_hover"))
 	parent.add_child(b)
 
 

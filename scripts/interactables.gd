@@ -19,6 +19,8 @@ var unlock_flag := ""
 var _close_t := 0.0
 var _player_hold := false
 var _let_in_t := -1.0
+var indicator: MeshInstance3D
+var secured := false
 
 
 func setup_pickup(item_kind: String) -> void:
@@ -136,6 +138,25 @@ func _safe_tick(dt: float) -> void:
 		_close_t -= dt * (3.0 if _hostile_near(7.0) else 1.0)
 		if _close_t <= 0.0 and not _anyone_in_doorway():
 			_close()
+
+
+## First staff member to reach the refuge barricades it: red lock light, crates and
+## planks stacked inside beside the door (visual only, never blocking the doorway).
+func secure() -> void:
+	if secured or kind != "safe_door":
+		return
+	secured = true
+	if indicator:
+		indicator.material_override = Build.mat(Color(1, 0.1, 0.1), 6.0)
+	var side := inside_dir.cross(Vector3.UP).normalized()
+	var root := get_parent()
+	var wood := Build.tex_mat("wood", Build.noise_tex("wood", Color(0.3, 0.18, 0.1), Color(0.6, 0.42, 0.24), 0.03, 256, 24), Color.WHITE, 0.45)
+	for sgn in [-1.0, 1.0]:
+		var base: Vector3 = position + inside_dir * 0.6 + side * sgn * 2.3
+		Build.boxm(root, Vector3(0.7, 0.7, 0.7), base + Vector3(0, 0.35, 0), wood, false, Vector3(0, randf() * 0.4, 0))
+		Build.boxm(root, Vector3(0.55, 0.55, 0.55), base + Vector3(0, 0.98, 0), wood, false, Vector3(0, randf() * 0.6, 0))
+		Build.boxm(root, Vector3(0.08, 2.0, 0.25), position + inside_dir * 0.25 + side * sgn * 1.25 + Vector3(0, 1.1, 0), wood, false, Vector3(0, 0, sgn * 0.12))
+	Sfx.play("clunk", global_position + Vector3.UP, 0.0, 0.7)
 
 
 func _player_inside(player) -> bool:

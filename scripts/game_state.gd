@@ -21,6 +21,8 @@ var light_points: Array = []  # Vector3 positions of bright lights (stealth)
 var safehouses := {}          # profession -> {door, slots, inside_center}
 var dread := 0.0              # 0 = cheerful carnival, 1 = full nightmare
 var radio_log: Array = []
+var corruptibles: Array = []      # corruptible.gd components placed on attractions/props
+var corrupted_cells := {}         # Vector2i -> true: ground the fog has permanently tainted
 var run_time := 0.0
 var running := false
 var flags := {}
@@ -50,6 +52,8 @@ func reset_run() -> void:
 	safehouses = {}
 	dread = 0.0
 	radio_log.clear()
+	corruptibles.clear()
+	corrupted_cells = {}
 	run_time = 0.0
 	running = true
 	flags = {}
@@ -65,27 +69,33 @@ func register_person(p) -> void:
 	people.append(p)
 
 
+## Every person is in exactly one bucket: rescued + affected + inside (alive, unaffected)
+## + casualties (unaffected and dead) == total. Fog-affected does not mean dead.
 func get_stats() -> Dictionary:
-	var total := people.size()
+	var total := 0
 	var affected := 0
 	var rescued := 0
-	var dead := 0
-	var trapped := 0
+	var casualties := 0
+	var inside := 0
+	var workers_rescued := 0
 	for p in people:
 		if not is_instance_valid(p):
 			continue
-		if p.fog_affected:
-			affected += 1
+		total += 1
 		if p.rescued:
 			rescued += 1
+			if p.role == "worker":
+				workers_rescued += 1
+		elif p.fog_affected:
+			affected += 1
 		elif p.dead:
-			dead += 1
-		elif not p.fog_affected:
-			trapped += 1
+			casualties += 1
+		else:
+			inside += 1
 	return {
 		"total": total, "affected": affected, "rescued": rescued,
-		"dead": dead, "trapped": trapped, "remaining": total - rescued,
-		"innocents_killed": innocents_killed,
+		"casualties": casualties, "trapped": inside, "remaining": inside,
+		"innocents_killed": innocents_killed, "workers_rescued": workers_rescued,
 	}
 
 
@@ -137,14 +147,18 @@ func compute_score() -> Dictionary:
 	var total := 0
 	if escaped:
 		lines.append(["Escaped the carnival", 1000]); total += 1000
-		var tb := int(maxf(0.0, 900.0 - t))
+		var tb := int(clampf(600.0 - t * 0.75, 0.0, 600.0))
 		lines.append(["Time bonus", tb]); total += tb
+	else:
+		lines.append(["Did not escape", 0])
 	var rescue_pts: int = s.rescued * 400
 	lines.append(["People rescued (%d x 400)" % s.rescued, rescue_pts]); total += rescue_pts
-	if worker_rescued:
-		lines.append(["Maintenance staff rescued", 600]); total += 600
+	if s.workers_rescued > 0:
+		lines.append(["Maintenance workers rescued (%d x 300)" % s.workers_rescued, s.workers_rescued * 300]); total += s.workers_rescued * 300
 	if escaped and not smg_acquired:
-		lines.append(["Escaped without the SMG", 300]); total += 300
+		lines.append(["Escaped without taking an SMG", 300]); total += 300
+	elif smg_acquired:
+		lines.append(["Took a guard's SMG", 0])
 	if innocents_killed > 0:
 		var pen := -500 * innocents_killed
 		lines.append(["Innocent people killed (%d x -500)" % innocents_killed, pen]); total += pen

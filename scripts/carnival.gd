@@ -6,6 +6,7 @@ extends RefCounted
 const PROPS := preload("res://scripts/props.gd")
 const INTERACT := preload("res://scripts/interactables.gd")
 const TV := preload("res://scripts/news_tv.gd")
+const CORR := preload("res://scripts/corruptible.gd")
 
 const HALF := 42.0
 const STRIPES := [Color(0.9, 0.12, 0.18), Color(0.97, 0.93, 0.85), Color(0.55, 0.18, 0.7), Color(0.1, 0.55, 0.7), Color(1.0, 0.62, 0.1)]
@@ -33,6 +34,16 @@ static func concrete() -> StandardMaterial3D:
 
 static func brick(tint: Color = Color.WHITE) -> StandardMaterial3D:
 	return Build.tex_mat("brick_" + tint.to_html(), Build.brick_tex("brick", Color(0.55, 0.25, 0.2), Color(0.3, 0.27, 0.25)), tint, 0.5)
+
+
+## Attach a corruption component to a structure (see corruptible.gd).
+static func _corr(parent: Node3D, kind: String, radius: float, warp: float = 1.0) -> Node:
+	var c := CORR.new()
+	c.kind = kind
+	c.radius = radius
+	c.warp = warp
+	parent.add_child(c)
+	return c
 
 
 static func build(root: Node3D) -> Dictionary:
@@ -65,15 +76,19 @@ static func build(root: Node3D) -> Dictionary:
 	_clutter(root)
 	_storytelling(root)
 	_cameras(root)
+	# several duty areas / patrol routes; each run picks and shuffles them
 	info["worker_duty"] = [
-		[Vector3(-22, 0, -22), Vector3(-31, 0, -21), Vector3(-14, 0, -28)],
-		[Vector3(-4, 0, 7), Vector3(5, 0, -12), Vector3(-5, 0, 17)],
-		[Vector3(18, 0, -6), Vector3(23, 0, -19), Vector3(16, 0, 15)],
+		{"area": "the Fun House", "pts": [Vector3(-22, 0, -22), Vector3(-31, 0, -21), Vector3(-14, 0, -28)]},
+		{"area": "the carousel", "pts": [Vector3(-4, 0, 7), Vector3(5, 0, -12), Vector3(-5, 0, 17)]},
+		{"area": "the Big Top", "pts": [Vector3(18, 0, -6), Vector3(23, 0, -19), Vector3(16, 0, 15)]},
+		{"area": "the Sky Wheel", "pts": [Vector3(3, 0, -29), Vector3(17, 0, -31), Vector3(-4, 0, -30)]},
+		{"area": "the shooting gallery", "pts": [Vector3(-21, 0, 12), Vector3(-22, 0, 2), Vector3(-30, 0, 20)]},
 	]
 	info["guard_routes"] = [
 		[Vector3(9, 0, 30), Vector3(-9, 0, 30), Vector3(-11, 0, 19), Vector3(10, 0, 18)],
 		[Vector3(-21, 0, 3), Vector3(-35, 0, 0), Vector3(-35, 0, -14), Vector3(-22, 0, -11)],
 		[Vector3(36, 0, 0), Vector3(36, 0, -15), Vector3(21, 0, -23), Vector3(17, 0, -3)],
+		[Vector3(-3, 0, -20), Vector3(-15, 0, -36), Vector3(20, 0, -36), Vector3(3, 0, -20)],
 	]
 	return info
 
@@ -115,7 +130,24 @@ static func _fence(root: Node3D) -> void:
 			Build.cyl(root, 0.2, 0.25, h + 0.6, Vector3(x, (h + 0.6) / 2, z), c2 if i % 2 == 0 else Color(0.5, 0.1, 0.18))
 			caps.append(Vector3(x, h + 0.75, z))
 			i += 1
-	Build.bulbs(root, caps, BULB_COLS, 0.14, 4.0)
+	var buckets := {}
+	for c in caps:
+		var key := Vector2i(roundi(c.x / 21.0), roundi(c.z / 21.0))
+		if not buckets.has(key):
+			buckets[key] = []
+		buckets[key].append(c)
+	for key in buckets:
+		var pts: Array = buckets[key]
+		var center := Vector3.ZERO
+		for c in pts:
+			center += c
+		center /= pts.size()
+		center.y = 0
+		var chunk := Node3D.new()
+		chunk.position = center
+		root.add_child(chunk)
+		Build.bulbs(chunk, pts.map(func(c): return c - center), BULB_COLS, 0.14, 4.0)
+		_corr(chunk, "bulbs", 12.0)
 	# tree silhouettes and distant hills outside
 	var trunk := Build.mat(Color(0.05, 0.04, 0.03))
 	var pines := []
@@ -198,6 +230,7 @@ static func _gate(root: Node3D) -> Node3D:
 	var tl := Build.label(sign, "NOTICE\nPARK MAY CLOSE EARLY\nFOG ADVISORY IN EFFECT", Vector3(0, 1.8, -0.05), Color(0.1, 0.05, 0.05), 22, PI)
 	tl.outline_size = 0
 	GameState.light_points.append(g.global_position + Vector3(0, 0, -3))
+	_corr(g, "sign", 6.0, 0.4)
 	return gate
 
 
@@ -220,27 +253,36 @@ static func _avenue_lights(root: Node3D) -> void:
 			var o := Build.omni(flick, Vector3.ZERO, BULB_COLS[idx % 4], 2.4, 12)
 			o.shadow_enabled = idx % 3 == 0
 			GameState.light_points.append(post.position)
+			_corr(post, "lamp", 2.5)
 			idx += 1
+		var row := Node3D.new()
+		row.position = Vector3(0, 0, z - 3.25)
+		root.add_child(row)
+		string_pts = []
 		var n := 16
 		for k in n + 1:
 			var u := float(k) / n
-			string_pts.append(Vector3(lerpf(-5.5, 5.5, u), 4.4 - sin(u * PI) * 0.9, z - 6.5 * u))
-	Build.bulbs(root, string_pts, BULB_COLS, 0.09, 5.0)
+			string_pts.append(Vector3(lerpf(-5.5, 5.5, u), 4.4 - sin(u * PI) * 0.9, 3.25 - 6.5 * u))
+		Build.bulbs(row, string_pts, BULB_COLS, 0.09, 5.0)
+		_corr(row, "bulbs", 6.0)
 
 
 static func _bunting(root: Node3D) -> void:
 	var pm := PrismMesh.new()
 	pm.size = Vector3(0.35, 0.45, 0.02)
-	var groups := [[], [], [], [], []]
 	for z in range(34, -32, -13):
+		var row := Node3D.new()
+		row.position = Vector3(0, 0, z - 6.5)
+		root.add_child(row)
+		var groups := [[], [], [], [], []]
 		for side in [-5.5, 5.5]:
-			# along the avenue between consecutive posts
 			for k in 12:
 				var u := float(k) / 12.0
-				var p := Vector3(side, 3.7 - sin(u * PI) * 0.6, z - 13.0 * u)
+				var p := Vector3(side, 3.7 - sin(u * PI) * 0.6, 6.5 - 13.0 * u)
 				groups[k % 5].append(Transform3D(Basis(Vector3.UP, PI / 2).rotated(Vector3.RIGHT, PI), p))
-	for c in 5:
-		Build.multi(root, pm, groups[c], Build.mat(STRIPES[c]))
+		for c in 5:
+			Build.multi(row, pm, groups[c], Build.mat(STRIPES[c]))
+		_corr(row, "bulbs", 7.0)
 
 
 # ---------------------------------------------------------------- attractions
@@ -270,6 +312,7 @@ static func _stall(root: Node3D, pos: Vector3, rot: float, title: String, col: C
 	for k in 5:
 		Build.sphere(s, 0.22, Vector3(-1.6 + k * 0.8, 2.1, 1.6), Build.mat(Color.from_hsv(randf(), 0.6, 0.9)), 8)
 	GameState.light_points.append(pos)
+	_corr(s, "generic", 3.5)
 
 
 static func _shooting_gallery(root: Node3D, pos: Vector3) -> Dictionary:
@@ -302,6 +345,7 @@ static func _shooting_gallery(root: Node3D, pos: Vector3) -> Dictionary:
 	var o := Build.omni(s, Vector3(0, 3, 0.5), Color(1, 0.8, 0.5), 3.0, 10)
 	o.shadow_enabled = true
 	GameState.light_points.append(pos)
+	_corr(s, "gallery", 5.0)
 	var to_world := func(local: Vector3) -> Vector3: return s.position + local.rotated(Vector3.UP, s.rotation.y)
 	return {
 		"pistol": to_world.call(Vector3(0.6, 1.25, -0.3)),
@@ -339,7 +383,7 @@ static func _room(s: Node3D, w: float, d: float, h: float, wall: Material, profe
 	Build.box(pivot, Vector3(0.22, 0.12, 0.12), Vector3(-0.1, 1.1, 1.75), Color(0.8, 0.7, 0.2), false, 0.6)
 	door.door_pivots.append(pivot)
 	# "secured" indicator light above the door
-	Build.sphere(s, 0.1, Vector3(-w / 2 - 0.2, 2.65, 0), Build.mat(Color(0.2, 1, 0.3), 5.0), 6)
+	door.indicator = Build.sphere(s, 0.1, Vector3(-w / 2 - 0.2, 2.65, 0), Build.mat(Color(0.2, 1, 0.3), 5.0), 6)
 	return door
 
 
@@ -424,6 +468,7 @@ static func _maintenance_yard(root: Node3D, shed: Vector3) -> void:
 	wsign.outline_size = 0
 	Build.label(y, "MAINTENANCE YARD", Vector3(-5.0, 4.2, -3.85), Color(1, 0.85, 0.3), 40, -PI / 2)
 	GameState.light_points.append(shed + Vector3(-6, 0, -1))
+	_corr(y, "generic", 8.0, 0.6)
 
 
 static func _security_office(root: Node3D, pos: Vector3) -> Dictionary:
@@ -496,6 +541,7 @@ static func _guard_booth(root: Node3D, pos: Vector3) -> Vector3:
 	o.shadow_enabled = false
 	Build.box(s, Vector3(0.6, 0.4, 0.4), Vector3(0.9, 1.4, 1.1), Color(0.1, 0.12, 0.2), false)
 	GameState.light_points.append(pos)
+	_corr(s, "generic", 4.5)
 	return pos + Vector3(-0.3, 0, -0.3)
 
 
@@ -543,6 +589,8 @@ static func _carousel(root: Node3D, pos: Vector3) -> void:
 	o.shadow_enabled = true
 	Build.label(s, "CAROUSEL", Vector3(0, 1.2, 7.4), Color(1, 0.85, 0.4), 64)
 	GameState.light_points.append(pos)
+	var cc := _corr(s, "carousel", 8.5, 0.8)
+	cc.add_tune("music_box", -7.0)
 
 
 static func _capsule_mesh(r: float, h: float) -> CapsuleMesh:
@@ -597,6 +645,7 @@ static func _ferris_wheel(root: Node3D, pos: Vector3) -> void:
 		Build.cyl(car, 0.0, 0.85, 0.4, Vector3(0, -0.2, 0), STRIPES[(k + 2) % 5], false, 10)
 		Build.boxm(car, Vector3(0.1, 0.8, 0.1), Vector3(0, -0.4, 0), steel, false)
 	Build.bulbs(wheel, lights, BULB_COLS, 0.11, 6.0)
+	_corr(s, "wheel", 12.0, 0.5)
 
 
 static func _big_top(root: Node3D, pos: Vector3) -> void:
@@ -618,6 +667,7 @@ static func _big_top(root: Node3D, pos: Vector3) -> void:
 	Build.bulbs(s, m, BULB_COLS, 0.1, 5.0)
 	var o := Build.omni(s, Vector3(-9.5, 4, 0), Color(1, 0.45, 0.45), 2.4, 10)
 	o.shadow_enabled = false
+	_corr(s, "generic", 9.5, 0.6)
 
 
 static func _fun_house(root: Node3D, pos: Vector3) -> void:
@@ -641,6 +691,7 @@ static func _fun_house(root: Node3D, pos: Vector3) -> void:
 	Build.boxm(s, Vector3(1.2, 1.2, 1.2), Vector3(-4, 0.6, -5.5), wood())
 	Build.boxm(s, Vector3(1.2, 1.2, 1.2), Vector3(-1.5, 0.6, -6.0), wood())
 	Build.boxm(s, Vector3(1.0, 1.0, 1.0), Vector3(-1.5, 1.7, -6.0), wood())
+	_corr(s, "generic", 7.5, 0.8)
 
 
 static func _tent(root: Node3D, pos: Vector3, r: float, col: Color) -> void:
@@ -656,6 +707,7 @@ static func _tent(root: Node3D, pos: Vector3, r: float, col: Color) -> void:
 		var a := TAU * k / 16.0
 		m.append(Vector3(cos(a) * (r + 0.42), 2.2, sin(a) * (r + 0.42)))
 	Build.bulbs(s, m, [Color(1, 0.85, 0.5), col.lightened(0.3)], 0.07, 4.0)
+	_corr(s, "generic", r + 1.5)
 
 
 static func _strength_tester(root: Node3D, pos: Vector3) -> void:
@@ -669,6 +721,7 @@ static func _strength_tester(root: Node3D, pos: Vector3) -> void:
 	Build.sphere(s, 0.4, Vector3(0, 7.4, 0), Build.mat(Color(1, 0.9, 0.2), 3.0), 10)
 	var tl := Build.label(s, "TEST YOUR STRENGTH", Vector3(-0.4, 4, 0), Color(1, 1, 1), 40, -PI / 2)
 	tl.rotation.z = PI / 2
+	_corr(s, "generic", 2.5)
 
 
 # ---------------------------------------------------------------- dressing
@@ -702,17 +755,22 @@ static func _clutter(root: Node3D) -> void:
 			Build.boxm(b, Vector3(2.0, 0.5, 0.1), Vector3(0, 0.8, 0.25), wood(), false)
 			Build.boxm(b, Vector3(0.1, 0.5, 0.5), Vector3(-0.9, 0.25, 0), metal(), false)
 			Build.boxm(b, Vector3(0.1, 0.5, 0.5), Vector3(0.9, 0.25, 0), metal(), false)
+			_corr(b, "generic", 2.0)
 			Build.cylm(root, 0.3, 0.26, 0.9, Vector3(side * 7.3, 0.45, z + 1.8), Build.stripe_mat(Color(0.2, 0.55, 0.3), Color(0.15, 0.4, 0.2), 6), true, 10)
 	# balloon bunches
 	for p in [Vector3(-5, 0, 34), Vector3(7, 0, 8), Vector3(-8, 0, -8), Vector3(16, 0, 26)]:
-		Build.cyl(root, 0.05, 0.05, 1.2, p + Vector3(0, 0.6, 0), Color(0.3, 0.3, 0.3), false, 4)
+		var bunch := Node3D.new()
+		bunch.position = p
+		root.add_child(bunch)
+		Build.cyl(bunch, 0.05, 0.05, 1.2, Vector3(0, 0.6, 0), Color(0.3, 0.3, 0.3), false, 4)
+		_corr(bunch, "balloons", 2.0)
 		for k in 6:
 			var bb := PROPS.new()
 			bb.kind = "bob"
 			bb.speed = randf_range(1, 2)
 			bb.amp = 0.12
-			bb.position = p + Vector3(randf_range(-0.5, 0.5), 2.4 + randf_range(0, 0.8), randf_range(-0.5, 0.5))
-			root.add_child(bb)
+			bb.position = Vector3(randf_range(-0.5, 0.5), 2.4 + randf_range(0, 0.8), randf_range(-0.5, 0.5))
+			bunch.add_child(bb)
 			var bm := StandardMaterial3D.new()
 			bm.albedo_color = STRIPES[k % 5]
 			bm.roughness = 0.2
@@ -744,6 +802,7 @@ static func _storytelling(root: Node3D) -> void:
 	Build.sphere(bear, 0.08, Vector3(-0.15, 0.82, 0), fur, 6)
 	Build.sphere(bear, 0.08, Vector3(0.15, 0.82, 0), fur, 6)
 	Build.box(bear, Vector3(0.3, 0.08, 0.08), Vector3(0, 0.5, -0.18), Color(0.9, 0.1, 0.4), false)
+	_corr(bear, "generic", 1.5, 2.0)
 	# "MISSING" poster boards: performers have been vanishing all week
 	var names := ["BOBO", "MISS GIGGLES", "TINY TIM-TIM"]
 	var spots := [Vector3(-7.5, 0, 31), Vector3(7.5, 0, -3), Vector3(-14, 0, -24)]
@@ -756,6 +815,7 @@ static func _storytelling(root: Node3D) -> void:
 		Build.box(b, Vector3(1.0, 1.3, 0.04), Vector3(0, 1.75, -0.08), Color(0.92, 0.88, 0.75), false)
 		var l := Build.label(b, "MISSING\n%s\nLAST SEEN\nNEAR THE FOG" % names[i], Vector3(0, 1.75, -0.11), Color(0.15, 0.05, 0.05), 16, PI)
 		l.outline_size = 0
+		_corr(b, "sign", 1.5)
 	# an overturned cotton-candy cart on the east path
 	var cart := Node3D.new()
 	cart.position = Vector3(21, 0.45, 8.5)
@@ -763,6 +823,7 @@ static func _storytelling(root: Node3D) -> void:
 	root.add_child(cart)
 	Build.box(cart, Vector3(1.4, 0.8, 0.9), Vector3.ZERO, Color(1, 0.6, 0.8), false)
 	Build.sphere(cart, 0.4, Vector3(0.9, 0.2, 0), Build.mat(Color(1, 0.75, 0.9)), 8)
+	_corr(cart, "generic", 1.5)
 	# a ticket booth at the entrance plaza
 	var tb := Node3D.new()
 	tb.position = Vector3(-6.5, 0, 37.5)
@@ -771,6 +832,7 @@ static func _storytelling(root: Node3D) -> void:
 	Build.box(tb, Vector3(1.8, 1.0, 0.1), Vector3(0, 1.7, 0.75), Color(0.6, 0.85, 1, 0.3), false)
 	Build.cylm(tb, 0.0, 1.4, 1.0, Vector3(0, 2.7, 0), Build.stripe_mat(Color(0.97, 0.85, 0.3), Color(0.9, 0.2, 0.25), 8), false, 8)
 	Build.label(tb, "ADMIT ONE", Vector3(0, 1.0, -0.82), Color(1, 0.9, 0.5), 30, PI)
+	_corr(tb, "generic", 2.0)
 
 
 static func _cameras(root: Node3D) -> void:
@@ -785,3 +847,4 @@ static func _cameras(root: Node3D) -> void:
 		led.position = Vector3(0.09, 4.12, -0.46)
 		c.add_child(led)
 		Build.sphere(led, 0.035, Vector3.ZERO, Build.mat(Color(1, 0.1, 0.1), 6.0), 4)
+		_corr(c, "generic", 1.5, 0.6)

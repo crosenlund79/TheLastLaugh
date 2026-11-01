@@ -11,8 +11,8 @@ const INTERACT := preload("res://scripts/interactables.gd")
 const FIRST_FOG_TIME := 40.0
 const MAX_FOG := 6
 const WORKER_NAMES := ["Dale", "Rosa", "Marty"]
-const WORKER_AREAS := ["the Fun House", "the carousel", "the Big Top"]
 const GUARD_NAMES := ["Officer Briggs", "Officer Kim", "Officer Lutz"]
+const CELL := 6.0  # ground corruption grid
 
 var info: Dictionary
 var player
@@ -27,6 +27,30 @@ var env: Environment
 var sky_mat: ProceduralSkyMaterial
 var moon: DirectionalLight3D
 var nav_region: NavigationRegion3D
+var crowd: AudioStreamPlayer
+var _corrupt_t := 0.0
+var _stain_mat: ShaderMaterial
+var _crystal_mat: StandardMaterial3D
+
+const STAIN_SHADER := """
+shader_type spatial;
+render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
+varying vec3 wpos;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void fragment() {
+	vec2 uv = UV * 2.0 - 1.0;
+	float r = length(uv);
+	float n = vn(wpos.xz * 0.9) * 0.6 + vn(wpos.xz * 3.0) * 0.4;
+	float edge = 1.0 - smoothstep(0.55 + n * 0.3, 0.95, r);
+	float veins = smoothstep(0.47, 0.5, n) * (1.0 - smoothstep(0.5, 0.54, n));
+	float pulse = 0.6 + 0.4 * sin(TIME * 1.7 + wpos.x * 0.5);
+	ALBEDO = mix(vec3(0.08, 0.0, 0.1), vec3(0.2, 0.01, 0.06), n) + veins * vec3(0.8, 0.2, 1.2) * pulse * 1.5;
+	ALPHA = edge * (0.7 + veins * 0.3);
+}
+"""
 
 
 func _ready() -> void:
@@ -49,6 +73,22 @@ func _ready() -> void:
 	_spawn_pickups()
 	_spawn_people()
 	_spawn_staff()
+	var sh := Shader.new()
+	sh.code = STAIN_SHADER
+	_stain_mat = ShaderMaterial.new()
+	_stain_mat.shader = sh
+	_crystal_mat = StandardMaterial3D.new()
+	_crystal_mat.albedo_color = Color(0.25, 0.05, 0.35)
+	_crystal_mat.roughness = 0.15
+	_crystal_mat.emission_enabled = true
+	_crystal_mat.emission = Color(0.6, 0.1, 0.9)
+	_crystal_mat.emission_energy_multiplier = 1.4
+	crowd = AudioStreamPlayer.new()
+	crowd.stream = Sfx.sounds.get("crowd")
+	crowd.bus = "SFX"
+	crowd.volume_db = -14.0
+	add_child(crowd)
+	crowd.play()
 	hud = HUD.new()
 	add_child(hud)
 	spawn_player(Vector3(0, 0.1, 37))
@@ -58,7 +98,7 @@ func _ready() -> void:
 	Music.target_volume = 1.0
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	get_tree().create_timer(3.0).timeout.connect(func(): GameState.think("The gate slammed shut behind me... I need to find a way out.", "intro"))
-	get_tree().create_timer(14.0).timeout.connect(func(): GameState.think("The maintenance crew must have keys to that gate.", "key_hint"))
+	get_tree().create_timer(16.0).timeout.connect(func(): GameState.think("If the gate's locked, the maintenance crew must keep a key somewhere.", "key_hint"))
 
 
 ## Kept separate so co-op can spawn additional players later.
@@ -154,6 +194,7 @@ func _spawn_pickups() -> void:
 	for p in info.gallery.ammo:
 		spawn_pickup("ammo_pistol", p)
 	spawn_pickup("shotgun", info.shed.shotgun)
+	spawn_pickup("gate_key", info.shed.gate_key)
 	spawn_pickup("ammo_shells", info.shed.ammo)
 	spawn_pickup("ammo_smg", info.office.ammo)
 	for p in [Vector3(-12, 1.4, 6), Vector3(14.5, 1.4, -6), Vector3(-34, 1.4, -12), Vector3(33, 1.4, -12), Vector3(6, 1.0, 30), Vector3(-24, 1.4, 24), Vector3(20, 1.4, -27)]:
@@ -172,7 +213,8 @@ func _spawn_people() -> void:
 		var c := PERSON.new()
 		add_child(c)
 		c.setup("clown", bodies[i % bodies.size()] if randf() < 0.85 else bodies.pick_random(), clown_spots[i])
-	var civ_spots := [Vector3(-6, 0, 21), Vector3(6, 0, 23), Vector3(-14, 0, 29), Vector3(4, 0, -16), Vector3(-14, 0, -6), Vector3(20, 0, 35)]
+	var civ_spots := [Vector3(-6, 0, 21), Vector3(-5, 0, 23), Vector3(6, 0, 23), Vector3(-14, 0, 29), Vector3(4, 0, -16),
+		Vector3(3, 0, -17), Vector3(-14, 0, -6), Vector3(20, 0, 35), Vector3(-3, 0, 9), Vector3(-22, 0, 14)]
 	for p in civ_spots:
 		var c := PERSON.new()
 		add_child(c)
@@ -180,20 +222,26 @@ func _spawn_people() -> void:
 
 
 func _spawn_staff() -> void:
-	var key_idx := randi() % 3
+	# modest randomization: duty areas and patrol routes are drawn from larger pools
+	var duties: Array = info.worker_duty.duplicate()
+	duties.shuffle()
 	var wbodies := ["normal", "belly", "skinny"]
 	wbodies.shuffle()
 	for i in 3:
 		var w := PERSON.new()
 		add_child(w)
-		var pts: Array = info.worker_duty[i]
+		var pts: Array = duties[i].pts.duplicate()
+		pts.shuffle()
 		w.setup("worker", wbodies[i], pts[0] + Vector3(1, 0, 1))
-		w.setup_staff(WORKER_NAMES[i], i, pts, WORKER_AREAS[i], i == key_idx)
-	var gbodies := ["belly", "normal", "normal"]
+		w.setup_staff(WORKER_NAMES[i], i, pts, duties[i].area, false)
+	var routes: Array = info.guard_routes.duplicate()
+	routes.shuffle()
+	var gbodies := ["belly", "normal", "skinny"]
+	gbodies.shuffle()
 	for i in 3:
 		var g := PERSON.new()
 		add_child(g)
-		var route: Array = info.guard_routes[i]
+		var route: Array = routes[i]
 		g.setup("guard", gbodies[i], route[0])
 		g.setup_staff(GUARD_NAMES[i], i, route, "", false)
 
@@ -283,10 +331,16 @@ func _process(delta: float) -> void:
 		if player:
 			var d: float = Vector2(player.global_position.x - f.global_position.x, player.global_position.z - f.global_position.z).length() - f.radius
 			nearest = minf(nearest, d)
+	_corrupt_t -= delta
+	if _corrupt_t <= 0.0:
+		_corrupt_t = 0.25
+		_spread_corruption()
 	var dist_factor := clampf(1.0 - nearest / 28.0, 0.0, 1.0)
-	var base := 0.08 * minf(float(fog_count), 3.0)
-	Music.target_distortion = clampf(maxf(maxf(dist_factor, base), GameState.dread * 0.5), 0.0, 1.0)
-	_update_dread(delta)
+	_update_dread(delta, dist_factor)
+	Music.target_distortion = clampf(maxf(dist_factor, GameState.dread * 0.85), 0.0, 1.0)
+	var st := GameState.get_stats()
+	var lively := float(st.trapped) / maxf(1.0, float(st.total))
+	crowd.volume_db = lerpf(crowd.volume_db, linear_to_db(maxf(0.001, lively * lively * 0.22 * (1.0 - GameState.dread))), delta)
 	if hud:
 		hud.set_fog(clampf(1.0 - (nearest + 2.0) / 8.0, 0.0, 1.0))
 		if nearest < 2.0 and nearest > -1.0:
@@ -302,84 +356,155 @@ func _process(delta: float) -> void:
 		end_run()
 
 
-## Cheerful -> nightmare. Driven by how much of the park the fog has taken.
-func _update_dread(delta: float) -> void:
-	var s := GameState.get_stats()
-	var target := clampf(float(s.affected) / maxf(1.0, float(s.total)) * 1.6 + minf(float(fog_count), 4.0) * 0.07, 0.0, 1.0)
-	GameState.dread = move_toward(GameState.dread, target, delta * 0.03)
+## Fog permanently corrupts what it touches: attractions/props (corruptible.gd) and the
+## ground itself (a coarse grid of stained, crystal-grown cells). Safe houses are exempt.
+func _spread_corruption() -> void:
+	for f in GameState.fog_banks:
+		var fp: Vector3 = f.global_position
+		for c in GameState.corruptibles:
+			if not c.corrupted:
+				var d := Vector2(c.global_position.x - fp.x, c.global_position.z - fp.z).length()
+				if d < f.radius + c.radius * 0.6:
+					c.corrupt()
+		var ci := Vector2i(floori(fp.x / CELL), floori(fp.z / CELL))
+		for dx in range(-2, 3):
+			for dz in range(-2, 3):
+				var cell := ci + Vector2i(dx, dz)
+				if GameState.corrupted_cells.has(cell):
+					continue
+				var center := Vector3((cell.x + 0.5) * CELL, 0, (cell.y + 0.5) * CELL)
+				if Vector2(center.x - fp.x, center.z - fp.z).length() > f.radius * 0.85:
+					continue
+				if absf(center.x) > 41.0 or absf(center.z) > 41.0 or _in_safehouse(center, 1.0):
+					continue
+				GameState.corrupted_cells[cell] = true
+				_stain(center)
+
+
+func _in_safehouse(p: Vector3, margin: float) -> bool:
+	for prof in GameState.safehouses:
+		var sh: Dictionary = GameState.safehouses[prof]
+		var rel: Vector3 = p - sh.center
+		if absf(rel.x) < sh.half.x + margin and absf(rel.z) < sh.half.z + margin:
+			return true
+	return false
+
+
+func _stain(center: Vector3) -> void:
+	var q := QuadMesh.new()
+	q.size = Vector2(CELL * 1.5, CELL * 1.5)
+	var m := MeshInstance3D.new()
+	m.mesh = q
+	m.material_override = _stain_mat
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(m)
+	m.global_position = center + Vector3(randf_range(-1, 1), 0.03 + randf() * 0.02, randf_range(-1, 1))
+	m.rotation = Vector3(-PI / 2, randf() * TAU, 0)
+	# jagged violet crystals pushing up through the dirt (visual only, no collision)
+	var pm := PrismMesh.new()
+	pm.size = Vector3(0.25, 1.0, 0.25)
+	for k in randi_range(1, 3):
+		var cr := MeshInstance3D.new()
+		cr.mesh = pm
+		cr.material_override = _crystal_mat
+		cr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(cr)
+		var hgt := randf_range(0.3, 1.0)
+		cr.scale = Vector3(1, hgt, 1)
+		cr.global_position = center + Vector3(randf_range(-2.4, 2.4), hgt * 0.4, randf_range(-2.4, 2.4))
+		cr.rotation = Vector3(randf_range(-0.4, 0.4), randf() * TAU, randf_range(-0.4, 0.4))
+		cr.scale = Vector3.ZERO
+		cr.create_tween().tween_property(cr, "scale", Vector3(1, hgt, 1), 2.0).set_trans(Tween.TRANS_ELASTIC)
+
+
+## Presentation follows the player's SURROUNDINGS: standing on corrupted ground (or near
+## fog) shifts light, sky, fog and post-processing; untouched streets stay cheerful.
+func _update_dread(delta: float, fog_near: float) -> void:
+	var local := 0.0
+	if player:
+		var pc := Vector2i(floori(player.global_position.x / CELL), floori(player.global_position.z / CELL))
+		var hits := 0.0
+		for dx in range(-2, 3):
+			for dz in range(-2, 3):
+				if GameState.corrupted_cells.has(pc + Vector2i(dx, dz)):
+					hits += 1.0 if absi(dx) <= 1 and absi(dz) <= 1 else 0.5
+		local = clampf(hits / 7.0, 0.0, 1.0)
+	var target := clampf(maxf(local, fog_near * 0.6), 0.0, 1.0)
+	GameState.dread = move_toward(GameState.dread, target, delta * 0.25)
 	var d := GameState.dread
-	env.ambient_light_color = Color(0.5, 0.4, 0.6).lerp(Color(0.24, 0.16, 0.36), d)
-	env.ambient_light_energy = lerpf(0.6, 0.3, d)
-	env.fog_light_color = Color(0.1, 0.06, 0.14).lerp(Color(0.16, 0.04, 0.22), d)
-	env.fog_density = lerpf(0.006, 0.02, d)
-	env.volumetric_fog_density = lerpf(0.003, 0.017, d)
-	env.volumetric_fog_albedo = Color(0.7, 0.6, 0.85).lerp(Color(0.6, 0.3, 0.85), d)
-	env.volumetric_fog_emission = Color(0.01, 0.006, 0.02).lerp(Color(0.05, 0.0, 0.08), d)
-	env.adjustment_saturation = lerpf(1.15, 0.8, d)
-	env.glow_intensity = lerpf(0.85, 1.2, d)
-	sky_mat.sky_horizon_color = Color(0.55, 0.25, 0.38).lerp(Color(0.28, 0.06, 0.38), d)
-	sky_mat.sky_top_color = Color(0.06, 0.05, 0.2).lerp(Color(0.02, 0.0, 0.05), d)
-	moon.light_energy = lerpf(0.45, 0.18, d)
-	moon.light_color = Color(0.6, 0.65, 1.0).lerp(Color(0.65, 0.45, 0.95), d)
+	env.ambient_light_color = Color(0.5, 0.4, 0.6).lerp(Color(0.3, 0.12, 0.38), d)
+	env.ambient_light_energy = lerpf(0.6, 0.35, d)
+	env.fog_light_color = Color(0.1, 0.06, 0.14).lerp(Color(0.2, 0.03, 0.22), d)
+	env.fog_density = lerpf(0.006, 0.022, d)
+	env.volumetric_fog_density = lerpf(0.003, 0.02, d)
+	env.volumetric_fog_albedo = Color(0.7, 0.6, 0.85).lerp(Color(0.6, 0.25, 0.75), d)
+	env.volumetric_fog_emission = Color(0.01, 0.006, 0.02).lerp(Color(0.06, 0.0, 0.07), d)
+	env.adjustment_saturation = lerpf(1.15, 0.85, d)
+	env.glow_intensity = lerpf(0.85, 1.25, d)
+	sky_mat.sky_horizon_color = Color(0.55, 0.25, 0.38).lerp(Color(0.35, 0.03, 0.2), d)
+	sky_mat.sky_top_color = Color(0.06, 0.05, 0.2).lerp(Color(0.03, 0.0, 0.06), d)
+	moon.light_energy = lerpf(0.45, 0.22, d)
+	moon.light_color = Color(0.6, 0.65, 1.0).lerp(Color(0.75, 0.4, 0.8), d)
 
 
-## Softlock prevention: the gate key and the shed must always stay reachable.
+## Softlock prevention: the shed (shotgun + gate key) and the gate key must stay reachable.
+## Keys never depend on random loot: workers always drop their shed key when defeated.
 func _ensure_progression() -> void:
 	if player == null:
 		return
 	var flags := GameState.flags
-	# 1) the gate key must exist somewhere obtainable
+	# 1) the gate key must exist (in the player's pocket, on the shed bench, or dropped)
 	if not player.has_item("gate_key") and not flags.get("gate_open", false):
-		var exists := not get_tree().get_nodes_in_group("pickup_gate_key").is_empty()
+		if get_tree().get_nodes_in_group("pickup_gate_key").is_empty():
+			spawn_pickup("gate_key", info.shed.gate_key)
+	# 2) a dropped shed key lying inside a locked safe house nobody can open -> lock gives way
+	for k in get_tree().get_nodes_in_group("pickup_shed_key"):
+		for prof in GameState.safehouses:
+			var sh: Dictionary = GameState.safehouses[prof]
+			var rel: Vector3 = k.global_position - sh.center
+			if absf(rel.x) < sh.half.x and absf(rel.z) < sh.half.z:
+				var flag: String = sh.door.unlock_flag
+				if not flags.get(flag, false) and sh.door._human_staff_inside().is_empty():
+					flags[flag] = true
+	# 3) no worker left who could ever open the shed or drop a key -> spare key at the door
+	if not _shed_reachable() and get_tree().get_nodes_in_group("pickup_shed_key").is_empty():
+		var any_worker := false
 		for p in GameState.people:
-			if p.keyholder and not p.dead and not p.fog_affected and not p.rescued:
-				exists = true
-		if not exists:
-			var pos: Vector3 = flags.get("gate_key_last_pos", info.shed.door_pos)
-			spawn_pickup("gate_key", Vector3(clampf(pos.x, -40, 40), 0.7, clampf(pos.z, -40, 40)))
-	# 2) a key lying inside a safe house nobody can open -> the lock gives way
-	for kind in ["gate_key", "shed_key"]:
-		for k in get_tree().get_nodes_in_group("pickup_" + kind):
-			for prof in GameState.safehouses:
-				var sh: Dictionary = GameState.safehouses[prof]
-				var rel: Vector3 = k.global_position - sh.center
-				if absf(rel.x) < sh.half.x and absf(rel.z) < sh.half.z:
-					var flag: String = sh.door.unlock_flag
-					if not flags.get(flag, false) and sh.door._human_staff_inside().is_empty():
-						flags[flag] = true
-	# 3) the shed (shotgun) must stay openable once no worker can let you in
-	if not flags.get("shed_unlocked", false) and not player.has_item("shed_key") and get_tree().get_nodes_in_group("pickup_shed_key").is_empty():
-		var human_worker := false
-		for p in GameState.people:
-			if p.role == "worker" and not p.dead and not p.fog_affected and not p.rescued:
-				human_worker = true
-		if not human_worker:
-			flags["shed_key_dropped"] = true
+			if p.role == "worker" and not p.dead and not p.rescued:
+				any_worker = true
+		if not any_worker:
 			spawn_pickup("shed_key", info.shed.door_pos + Vector3(-1.0, 0.7, 1.5))
+
+
+func _shed_reachable() -> bool:
+	return GameState.flags.get("shed_unlocked", false) or player.has_item("shed_key") or not get_tree().get_nodes_in_group("pickup_shed_key").is_empty()
 
 
 func _objective() -> String:
 	if player == null:
 		return ""
 	var followers := 0
+	var escorted_worker = null
 	for p in GameState.people:
 		if p.state == PERSON.FOLLOW:
 			followers += 1
+			if p.role == "worker":
+				escorted_worker = p
 	var esc := " (%d following you)" % followers if followers > 0 else ""
 	if player.weapons.is_empty():
 		return "Find a weapon — the shooting gallery should have something."
 	if not player.has_item("gate_key"):
-		if not get_tree().get_nodes_in_group("pickup_gate_key").is_empty():
-			return "The gate key was dropped — look for its golden glow."
-		var holder = null
-		for p in GameState.people:
-			if p.keyholder and not p.dead and not p.fog_affected:
-				holder = p
-		if holder:
-			if holder.state == PERSON.SAFE or holder.state == PERSON.RETREAT:
-				return "Get the gate key from %s — the maintenance crew fled to their shed (north-east)." % holder.staff_name
-			return "Find the maintenance worker with the gate key (look for the gold keyring)."
-		return "Find the gate key."
+		if GameState.flags.get("shed_open", false):
+			return "Grab the main gate key (and the shotgun) inside the maintenance shed."
+		if player.has_item("shed_key"):
+			return "Unlock the maintenance shed (north-east) with the worker's key."
+		if escorted_worker:
+			return "Escort %s to the maintenance shed (north-east) so he can unlock it." % escorted_worker.staff_name
+		if not get_tree().get_nodes_in_group("pickup_shed_key").is_empty():
+			return "A maintenance worker's key is lying out there — find it."
+		if GameState.flags.get("workers_sheltering", false):
+			return "The maintenance crew is holed up in their shed (north-east). Knock."
+		return "Get into the maintenance shed (north-east). Any maintenance worker has a key."
 	if not GameState.flags.get("gate_open", false):
 		return "Unlock the main exit gate (south)." + esc
 	return "Walk out through the gate to escape — or bring more survivors first." + esc
