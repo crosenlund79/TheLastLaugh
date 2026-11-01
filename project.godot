@@ -1,0 +1,28 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="The Last Laugh"
+config/description="Low-poly first-person carnival survival horror prototype."
+run/main_scene="res://scenes/main_menu.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+
+[autoload]
+
+GameState="*res://scripts/game_state.gd"
+Sfx="*res://scripts/sfx.gd"
+Music="*res://scripts/music.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[physics]
+
+common/physics_ticks_per_second=60
+
+[rendering]
+
+anti_aliasing/quality/msaa_3d=1
