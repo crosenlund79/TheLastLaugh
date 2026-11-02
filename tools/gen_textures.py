@@ -278,25 +278,32 @@ def foliage():
         d.ellipse([cx - rad, cy - rad * 0.45, cx + rad, cy + rad * 0.45], fill=(120, 140, 60, 255))
     finish(im, "blossom_card.png", (0.95, 0.75, 0.82))
 
-    # --- cedar / pine needle spray card
+    # --- sugi (Cryptomeria) spray card: a dense fan of rope-like branchlets covered in
+    # short awl needles, so the card reads as foliage mass rather than individual fronds
     im = canvas(); d = ImageDraw.Draw(im)
-    for k in range(16):
-        x, y = W * 0.5 + r.normal(0, W * 0.07), W * 0.97
-        ang = -math.pi / 2 + r.normal(0, 0.45)
-        for s in range(22):
-            nx_, ny_ = x + math.cos(ang) * W * 0.04, y + math.sin(ang) * W * 0.04
-            d.line([(x, y), (nx_, ny_)], fill=(60, 44, 30, 255), width=int(W * 0.006))
-            for q in range(10):
-                side = 1 if q % 2 == 0 else -1
-                na = ang + side * r.uniform(0.6, 1.1)
-                L = W * r.uniform(0.03, 0.05) * (1 - s / 30)
-                g = r.uniform(0.75, 1.1)
-                col = (int(42 * g), int(78 * g), int(40 * g), 255)
-                sx = x + (nx_ - x) * q / 10; sy = y + (ny_ - y) * q / 10
-                d.line([(sx, sy), (sx + math.cos(na) * L, sy + math.sin(na) * L)], fill=col, width=int(W * 0.0045))
+    for k in range(85):
+        x, y = W * 0.5 + r.normal(0, W * 0.05), W * 0.5 + r.normal(0, W * 0.05)
+        ang = r.uniform(0, math.tau)
+        L = r.uniform(0.45, 0.75)
+        steps = int(L * 60)
+        for s_ in range(steps):
+            nx_, ny_ = x + math.cos(ang) * W * 0.012, y + math.sin(ang) * W * 0.012
+            u = s_ / steps
+            g = r.uniform(0.7, 1.15) * (0.75 + 0.45 * u)
+            base = (int(36 * g), int(66 * g), int(34 * g), 255)
+            rad = W * 0.011 * (1 - 0.5 * u)
+            d.ellipse([nx_ - rad, ny_ - rad, nx_ + rad, ny_ + rad], fill=(int(28 * g), int(50 * g), int(28 * g), 255))
+            for q in range(5):
+                na = ang + r.uniform(-1.4, 1.4)
+                nl = W * r.uniform(0.008, 0.018)
+                d.line([(nx_, ny_), (nx_ + math.cos(na) * nl, ny_ + math.sin(na) * nl)], fill=base, width=max(2, int(W * 0.0035)))
+            if u > 0.85 and r.random() < 0.5:
+                d.ellipse([nx_ - rad, ny_ - rad, nx_ + rad, ny_ + rad], fill=(int(70 * g), int(96 * g), int(40 * g), 255))
             x, y = nx_, ny_
-            ang += r.normal(0, 0.12)
-    finish(im, "needle_card.png", (0.17, 0.30, 0.15))
+            ang += r.normal(0, 0.08)
+            if not (0.03 * W < x < 0.97 * W and 0.03 * W < y):
+                break
+    finish(im, "needle_card.png", (0.15, 0.27, 0.14))
 
     # --- broadleaf card (background deciduous / shrubs)
     im = canvas(); d = ImageDraw.Draw(im)

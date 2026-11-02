@@ -30,6 +30,7 @@ func _ready() -> void:
 			views.append(scene.VIEWS.size() - 1)
 			k += 1
 	scene.go_view(views[0])
+	scene.player.set_physics_process(false)  # hold the exact camera pose while frames settle
 	print("start ", Time.get_ticks_msec())
 
 var _last := 0

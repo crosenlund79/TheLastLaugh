@@ -846,7 +846,7 @@ def cedar(name, height_m, seed):
         tubes.append(tube("br", [o, mid, e], r0, "bark", 5, [r0, (r0 + r1) / 2, r1]))
     if tubes:
         trunk = join([trunk] + tubes, name + "_trunk")
-    leaves = foliage_cards(name + "_leaves", leaf_pts, "needles", Vector((0, 0, height_m * 0.6)), 2.2, 4, rnd, 0.55)
+    leaves = foliage_cards(name + "_leaves", leaf_pts, "needles", Vector((0, 0, height_m * 0.6)), 1.7, 6, rnd, 0.5)
     return trunk, leaves
 
 
