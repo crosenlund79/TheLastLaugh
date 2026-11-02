@@ -3,26 +3,27 @@ config_version=5
 
 [application]
 
-config/name="The Last Laugh"
-config/description="Low-poly first-person carnival survival horror prototype."
-run/main_scene="res://scenes/main_menu.tscn"
+config/name="Last Light Shrine"
+config/description="An explorable golden-hour mountain shrine — a Godot 4 visual showcase."
+run/main_scene="res://showcase/showcase.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
-
-[autoload]
-
-GameState="*res://scripts/game_state.gd"
-Sfx="*res://scripts/sfx.gd"
-Music="*res://scripts/music.gd"
 
 [display]
 
-window/size/viewport_width=1280
-window/size/viewport_height=720
-
-[physics]
-
-common/physics_ticks_per_second=60
+window/size/viewport_width=1600
+window/size/viewport_height=900
 
 [rendering]
 
-anti_aliasing/quality/msaa_3d=1
+renderer/rendering_method="forward_plus"
+anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/screen_space_aa=1
+lights_and_shadows/directional_shadow/size=8192
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=4
+lights_and_shadows/positional_shadow/soft_shadow_filter_quality=3
+global_illumination/sdfgi/probe_ray_count=2
+global_illumination/sdfgi/frames_to_converge=3
+environment/volumetric_fog/volume_size=96
+environment/volumetric_fog/volume_depth=96
+anti_aliasing/quality/use_debanding=true
+textures/default_filters/anisotropic_filtering_level=4
