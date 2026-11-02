@@ -18,6 +18,17 @@ func _ready() -> void:
 		scene.set_meta("profile_off", off.split(","))
 	add_child(scene)
 	wait = int(OS.get_environment("WARM")) if OS.get_environment("WARM") != "" else 40
+	# CAM="ex,ey,ez,tx,ty,tz;..." adds custom diagnostic viewpoints (numbered from 101)
+	var cam := OS.get_environment("CAM")
+	if cam != "":
+		var k := 0
+		for c in cam.split(";"):
+			var f := Array(c.split(",")).map(func(x): return float(x))
+			scene.VIEWS.append([Vector3(f[0], f[1], f[2]), Vector3(f[3], f[4], f[5])])
+			if vs == "":
+				views = []
+			views.append(scene.VIEWS.size() - 1)
+			k += 1
 	scene.go_view(views[0])
 	print("start ", Time.get_ticks_msec())
 

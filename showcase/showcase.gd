@@ -11,7 +11,7 @@ const PLAYER := preload("res://showcase/player.gd")
 # toward the sun: low in the west-north-west
 const SUN_DIR := Vector3(-0.80, 0.16, -0.56)
 
-const VIEWS := [
+var VIEWS := [
 	[Vector3(0.6, 1.75, 36.0), Vector3(0.0, 7.5, -20.0)],          # 1 arrival: bridge, path, torii stair
 	[Vector3(19.0, 9.5, 14.0), Vector3(-3.0, 5.0, -22.0)],          # 2 wide: garden and hillside
 	[Vector3(-0.9, 1.45, -0.6), Vector3(-2.75, 1.55, -2.5)],        # 3 close: stone lantern
@@ -258,7 +258,7 @@ func _materials() -> void:
 		"grass_a": tex("grass_albedo"), "grass_n": tex("grass_normal"), "moss_a": tex("moss_albedo"), "moss_n": tex("moss_normal"),
 		"dirt_a": tex("dirt_albedo"), "dirt_n": tex("dirt_normal"), "cliff_a": tex("cliff_albedo"), "cliff_n": tex("cliff_normal")})
 	mats["mountain"] = shader_mat("mountains", {"sun_dir": SUN_DIR})
-	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.18, 1.08, 1.12), "backlight_col": Color(1.0, 0.78, 0.84), "translucency": 1.0, "wind": 0.1, "ao_strength": 0.55})
+	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.0, 0.95, 0.98), "backlight_col": Color(0.85, 0.6, 0.66), "translucency": 0.65, "wind": 0.1, "ao_strength": 0.55})
 	mats["needles"] = shader_mat("foliage", {"albedo_tex": tex("needle_card"), "tint": Color(0.85, 0.95, 0.8), "backlight_col": Color(0.55, 0.75, 0.3), "translucency": 0.45, "wind": 0.05, "roughness": 0.85})
 	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(3.1, 0.9, 0.35), "backlight_col": Color(1.0, 0.35, 0.12), "translucency": 0.9, "wind": 0.12})
 	mats["leaves"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(0.85, 0.95, 0.75), "backlight_col": Color(0.6, 0.8, 0.3), "translucency": 0.55, "wind": 0.06})
