@@ -159,7 +159,7 @@ def ground_set():
     # grass/meadow floor (seen beneath grass blades)
     a = fft_noise(N, 2.2, 71, lo=2); b = fft_noise(N, 0.8, 72, lo=60)
     h = 0.6 * a + 0.4 * b
-    grass = colorize(h, [(0, (0.10, 0.14, 0.05)), (0.5, (0.20, 0.26, 0.09)), (1, (0.33, 0.36, 0.13))])
+    grass = colorize(h, [(0, (0.07, 0.11, 0.035)), (0.5, (0.14, 0.21, 0.065)), (1, (0.24, 0.31, 0.10))])
     litter = (fft_noise(N, 0.3, 73, lo=180) > 0.8)[..., None]
     grass = np.where(litter, np.array([0.36, 0.28, 0.16]), grass)
     save_rgb(P("grass_albedo.png"), grass)

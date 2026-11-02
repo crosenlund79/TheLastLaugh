@@ -170,7 +170,7 @@ def build_layout():
         P(6.0, 40.5, s=1.1, rot=1.7), P(-21.0, 30.0, s=1.0, rot=0.2),
     ]
     L["maple"] = [P(-10.5, 10.0, s=0.9, rot=1.0), P(11.0, 13.0, s=0.8, rot=2.0), P(13.0, -64.0, s=1.0, rot=0.5), P(5.5, -35.0, s=0.75, rot=3.0)]
-    L["sacred_tree"] = P(-9.5, -52.0, s=1.0, rot=0.4)
+    L["sacred_tree"] = P(-12.5, -50.5, s=1.0, rot=0.4)
     # cedar forest: masses that frame the composition and close the horizon
     ced = []
 
