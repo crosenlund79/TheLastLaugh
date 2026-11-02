@@ -578,10 +578,6 @@ def bridge():
         a = box("abut", (W + 0.8, 1.1, 0.45), (0, y, -0.12), "granite", bev=0.08, seg=3)
         weather(a, 0.035, 0.3, 2)
         parts.append(a)
-        for sx in (-1, 1):
-            k = box("abut_side", (0.9, 1.3, 0.7), (sx * (W / 2 + 0.55), y, 0.05), "granite", rot=(0.05, 0.08 * sx, 0.3 * sx), bev=0.12, seg=3)
-            weather(k, 0.06, 0.25, 2)
-            parts.append(k)
     o = join(parts, "bridge")
     # smooth walkable collision strip + rail walls
     verts, faces = [], []

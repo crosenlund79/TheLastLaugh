@@ -9,7 +9,7 @@ const SH := "res://showcase/shaders/"
 const PLAYER := preload("res://showcase/player.gd")
 
 # toward the sun: low in the south-west, raking golden light across the stair and hall facade
-const SUN_DIR := Vector3(-0.62, 0.17, 0.77)
+const SUN_DIR := Vector3(-0.60, 0.30, 0.74)
 
 var VIEWS := [
 	[Vector3(0.6, 1.75, 36.0), Vector3(0.0, 7.5, -20.0)],          # 1 arrival: bridge, path, torii stair
@@ -124,7 +124,7 @@ func _environment() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.75
+	env.ambient_light_energy = 0.45
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_exposure = 1.0
@@ -177,7 +177,7 @@ func _environment() -> void:
 	add_child(sun)
 	sun.look_at_from_position(Vector3.ZERO, -SUN_DIR.normalized(), Vector3.UP)
 	sun.light_color = Color(1.0, 0.8, 0.62)
-	sun.light_energy = 2.6
+	sun.light_energy = 3.0
 	sun.light_angular_distance = 1.2
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.04
