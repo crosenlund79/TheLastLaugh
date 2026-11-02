@@ -180,8 +180,8 @@ func _environment() -> void:
 	sun.light_energy = 3.0
 	sun.light_angular_distance = 1.2
 	sun.shadow_enabled = true
-	sun.shadow_bias = 0.04
-	sun.shadow_normal_bias = 1.2
+	sun.shadow_bias = 0.1
+	sun.shadow_normal_bias = 2.5
 	sun.shadow_blur = 1.2
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	sun.directional_shadow_max_distance = 100.0

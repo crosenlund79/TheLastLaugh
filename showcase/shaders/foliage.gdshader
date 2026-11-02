@@ -1,7 +1,9 @@
 // Leaf / blossom cards: alpha-to-coverage edges, crown-shaped normals (from Blender),
 // baked canopy AO (vertex colour), translucent backlight and layered wind.
 shader_type spatial;
-render_mode cull_disabled, diffuse_burley, specular_schlick_ggx;
+// shadows_disabled: cards don't *receive* sun shadows (crown-shaped normals defeat normal-offset
+// bias and produce acne); they still cast onto the ground. Canopy depth comes from baked AO.
+render_mode cull_disabled, diffuse_burley, specular_schlick_ggx, shadows_disabled;
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform vec4 tint : source_color = vec4(1.0);
