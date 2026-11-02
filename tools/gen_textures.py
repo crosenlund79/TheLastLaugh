@@ -263,7 +263,7 @@ def foliage():
         if not (0.08 * W < cx < 0.92 * W and 0.06 * W < cy < 0.9 * W):
             continue
         rad = W * r.uniform(0.022, 0.034)
-        base = np.array([0.98, 0.80, 0.86]) * r.uniform(0.9, 1.04) + r.normal(0, 0.02, 3)
+        base = np.array([0.95, 0.68, 0.79]) * r.uniform(0.88, 1.04) + r.normal(0, 0.025, 3)
         rot = r.uniform(0, math.tau)
         for p in range(5):
             a_ = rot + p * math.tau / 5

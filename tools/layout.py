@@ -134,7 +134,7 @@ def build_layout():
     L = {}
     L["spawn"] = {"x": 0.6, "y": float(height(0.6, 36.0)) + 0.05, "z": 36.0, "yaw": 0.0}
     L["torii"] = [
-        P(0, 9.0, s=1.15, kind="big"),
+        P(0, 9.0, s=0.95, kind="big"),
         P(0, -4.6, s=1.0, kind="big"),
         P(0, -16.9, s=0.95, kind="big"),
         P(0, -28.9, s=0.95, kind="big"),
@@ -146,7 +146,7 @@ def build_layout():
         for sx in (-1, 1):
             xx = float(path_x(z)) + sx * 2.7
             lan.append(P(xx, z, lit=(z != 5.0), rot=0.0 if sx < 0 else math.pi))
-    for z in (-45.5, -50.0, -54.5):
+    for z in (-45.0, -49.5):
         for sx in (-1, 1):
             lan.append(dict(x=sx * 3.3, y=12.0, z=z, lit=True, rot=0.0))
     lan.append(P(-9.0, 15.5, lit=True, rot=0.6))   # pond-side
@@ -213,7 +213,7 @@ def build_layout():
         if slope(x, z) > 0.45 and pond_mask(x, z, 1.4) < 0.01 and path_mask(x, z) < 0.01 and abs(x) > 5 and plateau_mask(x, z) < 0.01:
             rocks.append(P(x, z, s=float(rng.uniform(1.0, 2.6)), v=int(rng.integers(0, 6)), rot=float(rng.uniform(0, 6.28)), sink=0.5))
     L["rocks"] = rocks
-    L["hall"] = {"x": 0.0, "y": 12.0, "z": -62.0}
+    L["hall"] = {"x": 0.0, "y": 12.0, "z": -64.0, "s": 1.35}
     L["bell"] = {"x": 12.5, "y": 12.0, "z": -52.0}
     L["pavilion"] = {"x": -16.0, "y": 12.0, "z": -67.5}
     L["bridge"] = {"x": 0.0, "y": 0.0, "z": 22.0}

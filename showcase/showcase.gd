@@ -8,16 +8,16 @@ const M := "res://showcase/models/"
 const SH := "res://showcase/shaders/"
 const PLAYER := preload("res://showcase/player.gd")
 
-# toward the sun: low in the west-north-west
-const SUN_DIR := Vector3(-0.80, 0.16, -0.56)
+# toward the sun: low in the south-west, raking golden light across the stair and hall facade
+const SUN_DIR := Vector3(-0.62, 0.17, 0.77)
 
 var VIEWS := [
 	[Vector3(0.6, 1.75, 36.0), Vector3(0.0, 7.5, -20.0)],          # 1 arrival: bridge, path, torii stair
 	[Vector3(19.0, 9.5, 14.0), Vector3(-3.0, 5.0, -22.0)],          # 2 wide: garden and hillside
 	[Vector3(-0.9, 1.45, -0.6), Vector3(-2.75, 1.55, -2.5)],        # 3 close: stone lantern
 	[Vector3(0.0, 5.75, -17.6), Vector3(0.0, 9.6, -29.0)],          # 4 senbon torii tunnel
-	[Vector3(2.4, 13.7, -42.0), Vector3(0.0, 15.2, -62.0)],         # 5 courtyard and hall
-	[Vector3(-12.5, 13.7, -63.5), Vector3(-70.0, 6.0, -78.0)],      # 6 overlook into the sunset
+	[Vector3(3.0, 13.7, -42.0), Vector3(0.0, 16.0, -64.0)],         # 5 courtyard and hall
+	[Vector3(-13.0, 13.7, -62.0), Vector3(-70.0, 4.0, -30.0)],      # 6 overlook into the sunset
 	[Vector3(0.6, 13.75, -40.5), Vector3(0.0, 3.0, 12.0)],          # 7 looking back down
 ]
 
@@ -276,21 +276,20 @@ func _static_world() -> void:
 			mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		elif mi.name.begins_with("far_terrain"):
 			mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	var hall := place(load(M + "hall.glb"), V(L.hall))
-	hall.rotation.y = 0.0
+	place(load(M + "hall.glb"), V(L.hall), 0.0, L.hall.s)
 	place(load(M + "bridge.glb"), Vector3(L.bridge.x, 0.0, L.bridge.z))
 	place(load(M + "bell_pavilion.glb"), V(L.bell), -0.35)
 	place(load(M + "azumaya.glb"), V(L.pavilion), 0.25)
 	# warm interior light behind the hall's shoji screens
 	var inner := OmniLight3D.new()
-	inner.position = V(L.hall) + Vector3(0, 3.0, 3.0)
+	inner.position = V(L.hall) + Vector3(0, 3.0, 3.0) * L.hall.s
 	inner.light_color = Color(1.0, 0.62, 0.32)
 	inner.light_energy = 2.0
 	inner.omni_range = 7.0
 	add_child(inner)
 	for sx in [-1.0, 1.0]:
 		var hl := OmniLight3D.new()
-		hl.position = V(L.hall) + Vector3(sx * 5.4, 5.3, 6.0)
+		hl.position = V(L.hall) + Vector3(sx * 5.4, 5.3, 6.0) * L.hall.s
 		hl.light_color = Color(1.0, 0.6, 0.3)
 		hl.light_energy = 1.2
 		hl.omni_range = 5.0
