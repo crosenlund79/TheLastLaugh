@@ -33,8 +33,6 @@ void fragment() {
 	float facing = abs(dot(gn, normalize(VIEW)));
 	ALPHA = c.a * smoothstep(0.12, 0.35, facing);
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
-	ALPHA_ANTIALIASING_EDGE = 0.25;
-	ALPHA_TEXTURE_COORDINATE = UV * vec2(textureSize(albedo_tex, 0));
 	if (!FRONT_FACING) { NORMAL = -NORMAL; }  // keep the crown-shaped normals on both sides
 	float v = fract(sin(dot(floor(wpos * 0.7), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
 	float ao = mix(1.0, COLOR.r, ao_strength);

@@ -541,7 +541,7 @@ def bridge():
     parts, cols = [], []
     L = 18.0
     W = 2.6
-    Hc = 1.75
+    Hc = 1.2
     def deck_z(y):
         u = y / (L / 2)
         return 0.15 + Hc * (1 - u * u)
