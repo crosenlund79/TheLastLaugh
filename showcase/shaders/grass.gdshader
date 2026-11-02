@@ -4,7 +4,7 @@ render_mode cull_disabled, diffuse_burley;
 
 uniform vec3 root_col : source_color = vec3(0.05, 0.08, 0.02);
 uniform vec3 mid_col : source_color = vec3(0.20, 0.30, 0.07);
-uniform vec3 tip_col : source_color = vec3(0.55, 0.60, 0.18);
+uniform vec3 tip_col : source_color = vec3(0.40, 0.52, 0.14);
 uniform vec3 dry_col : source_color = vec3(0.62, 0.52, 0.25);
 uniform float wind = 0.22;
 
@@ -23,7 +23,7 @@ void vertex() {
 }
 
 void fragment() {
-	vec3 tipc = mix(tip_col, dry_col, smoothstep(0.55, 1.0, seed) * 0.8);
+	vec3 tipc = mix(tip_col, dry_col, smoothstep(0.75, 1.0, seed) * 0.6);
 	vec3 col = mix(root_col, mid_col, smoothstep(0.0, 0.45, h));
 	col = mix(col, tipc, smoothstep(0.4, 1.0, h));
 	col *= 0.85 + seed * 0.3;

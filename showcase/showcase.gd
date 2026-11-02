@@ -29,14 +29,26 @@ var env: Environment
 var player: CharacterBody3D
 
 
+func _off(f: String) -> bool:
+	return has_meta("profile_off") and f in get_meta("profile_off")
+
+
 func _ready() -> void:
 	L = JSON.parse_string(FileAccess.get_file_as_string("res://showcase/data/layout.json"))
 	_environment()
+	if _off("sdfgi"):
+		env.sdfgi_enabled = false
+	if _off("vfog"):
+		env.volumetric_fog_enabled = false
+	if _off("shadow"):
+		sun.shadow_enabled = false
 	_materials()
 	_static_world()
 	_props()
-	_trees()
-	_grass()
+	if not _off("trees"):
+		_trees()
+	if not _off("grass"):
+		_grass()
 	_water()
 	_courtyard()
 	_atmosphere()
@@ -140,14 +152,14 @@ func _environment() -> void:
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.82, 0.62, 0.58)
 	env.fog_light_energy = 1.0
-	env.fog_sun_scatter = 0.45
-	env.fog_density = 0.0028
-	env.fog_aerial_perspective = 0.55
+	env.fog_sun_scatter = 0.3
+	env.fog_density = 0.0015
+	env.fog_aerial_perspective = 0.4
 	env.fog_sky_affect = 0.0
 	env.fog_height = -6.0
 	env.fog_height_density = 0.08
 	env.volumetric_fog_enabled = true
-	env.volumetric_fog_density = 0.007
+	env.volumetric_fog_density = 0.0035
 	env.volumetric_fog_albedo = Color(0.95, 0.85, 0.8)
 	env.volumetric_fog_anisotropy = 0.72
 	env.volumetric_fog_length = 90.0
@@ -246,7 +258,7 @@ func _materials() -> void:
 		"grass_a": tex("grass_albedo"), "grass_n": tex("grass_normal"), "moss_a": tex("moss_albedo"), "moss_n": tex("moss_normal"),
 		"dirt_a": tex("dirt_albedo"), "dirt_n": tex("dirt_normal"), "cliff_a": tex("cliff_albedo"), "cliff_n": tex("cliff_normal")})
 	mats["mountain"] = shader_mat("mountains", {"sun_dir": SUN_DIR})
-	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "backlight_col": Color(1.0, 0.72, 0.78), "translucency": 0.85, "wind": 0.1})
+	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.18, 1.08, 1.12), "backlight_col": Color(1.0, 0.78, 0.84), "translucency": 1.0, "wind": 0.1, "ao_strength": 0.55})
 	mats["needles"] = shader_mat("foliage", {"albedo_tex": tex("needle_card"), "tint": Color(0.85, 0.95, 0.8), "backlight_col": Color(0.55, 0.75, 0.3), "translucency": 0.45, "wind": 0.05, "roughness": 0.85})
 	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(3.1, 0.9, 0.35), "backlight_col": Color(1.0, 0.35, 0.12), "translucency": 0.9, "wind": 0.12})
 	mats["leaves"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(0.85, 0.95, 0.75), "backlight_col": Color(0.6, 0.8, 0.3), "translucency": 0.55, "wind": 0.06})
@@ -450,14 +462,14 @@ func _grass_clump() -> ArrayMesh:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 9
-	for b in 7:
+	for b in 6:
 		var a := rng.randf() * TAU
 		var root := Vector3(cos(a), 0, sin(a)) * rng.randf_range(0.0, 0.12)
-		var h := rng.randf_range(0.28, 0.62)
+		var h := rng.randf_range(0.18, 0.4)
 		var w := rng.randf_range(0.028, 0.045)
 		var lean := Vector3(cos(a), 0, sin(a)) * rng.randf_range(0.08, 0.25)
 		var side := Vector3(-sin(a + 1.3), 0, cos(a + 1.3))
-		var segs := 4
+		var segs := 3
 		var prev_l := Vector3.ZERO
 		var prev_r := Vector3.ZERO
 		for sgi in segs + 1:

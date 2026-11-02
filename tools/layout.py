@@ -179,9 +179,10 @@ def build_layout():
             if (t["x"] - x) ** 2 + (t["z"] - z) ** 2 < 6.0 ** 2:
                 return False
         return True
+    # framing masses only: the stair axis and the hill must stay readable from the bridge
     regions = [  # (x0,x1,z0,z1,count)
-        (22, 66, -100, 50, 70), (-60, 20, -108, -74, 46), (-60, -24, 0, 54, 30),
-        (-30, -20, -40, 0, 8), (12, 22, -40, 4, 12), (-20, -10, -40, -4, 10), (-40, 30, 44, 56, 16),
+        (26, 66, -100, 50, 64), (-60, 22, -108, -76, 46), (-60, -26, 4, 54, 26),
+        (16, 26, -36, -6, 4), (-24, -16, -30, -8, 3), (-40, 30, 46, 56, 14),
     ]
     for (x0, x1, z0, z1, n) in regions:
         tries = 0
@@ -224,7 +225,7 @@ def build_layout():
 def build_grass(L):
     """Grass clump transforms: x, y, z, yaw, scale, tint."""
     rng = np.random.default_rng(3)
-    n = 260000
+    n = 220000
     x = rng.uniform(-48, 46, n); z = rng.uniform(-82, 52, n)
     # density falls off away from the explorable core
     keep = rng.random(n) < (0.25 + 0.75 * np.exp(-((x / 34) ** 2)))
@@ -239,7 +240,7 @@ def build_grass(L):
     m &= rng.random(len(x)) > sp[:, 1] * 0.6
     x, y, z = x[m], y[m], z[m]
     yaw = rng.uniform(0, math.tau, len(x))
-    sc = rng.uniform(0.6, 1.25, len(x)) * (1 - 0.3 * splat(x, z)[:, 1])
+    sc = rng.uniform(0.5, 1.0, len(x)) * (1 - 0.3 * splat(x, z)[:, 1]) * (0.75 + 0.25 * smooth(1.5, 4.0, np.abs(x - path_x(z))))
     tint = rng.random(len(x))
     arr = np.stack([x, y, z, yaw, sc, tint], -1).astype(np.float32)
     return arr
