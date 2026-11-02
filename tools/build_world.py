@@ -733,7 +733,7 @@ def grow(skel, p, d, length, radius, level, maxlev, rnd, params, tips):
         spread = params["spread"][level]
         nd = (dd * math.cos(spread) + axis * math.sin(spread) + Vector((0, 0, params["lift"]))).normalized()
         grow(skel, origin, nd, length * params["decay"] * rnd.uniform(0.8, 1.1), r0 * (1 - 0.55 * idx / seg) * params["rdecay"], level + 1, maxlev, rnd, params, tips)
-        if level >= 1 and rnd.random() < params.get("midtips", 0):
+        if level >= params.get("midlevel", 1) and rnd.random() < params.get("midtips", 0):
             tips.append((pts[max(1, idx)], nd))
 
 
@@ -818,11 +818,12 @@ def foliage_cards(name, tips, matname, center, size, per, rnd, spread, extra=Non
     return o
 
 
-SAKURA = dict(seg=6, wobble=0.22, up=0.06, branches=[4, 3, 3, 2], start=0.45, spread=[0.75, 0.7, 0.65, 0.6], lift=0.15, decay=0.72, rdecay=0.62, midtips=0.4)
+# broad, layered, spreading crown: near-horizontal limbs, lobed clusters with gaps
+SAKURA = dict(seg=6, wobble=0.2, up=0.02, branches=[4, 3, 3, 2], start=0.7, spread=[1.0, 0.95, 0.8, 0.7], lift=0.06, decay=0.78, rdecay=0.6, midtips=0.25, midlevel=2)
 MAPLE = dict(seg=5, wobble=0.2, up=0.05, branches=[4, 3, 3], start=0.5, spread=[0.9, 0.75, 0.7], lift=0.05, decay=0.7, rdecay=0.6, midtips=0.5)
 
 
-def broadleaf(name, params, trunk_len, trunk_r, lean, leafmat, card, per, seed, lev=3, target=9000):
+def broadleaf(name, params, trunk_len, trunk_r, lean, leafmat, card, per, seed, lev=3, target=9000, spread_k=0.35):
     rnd = random.Random(seed)
     skel, tips = [], []
     d = Vector((math.sin(lean), 0.0, math.cos(lean))).normalized()
@@ -836,7 +837,7 @@ def broadleaf(name, params, trunk_len, trunk_r, lean, leafmat, card, per, seed, 
     for (p, _) in tips:
         c += p
     c /= max(1, len(tips))
-    leaves = foliage_cards(name + "_leaves", tips, leafmat, c, card, per, rnd, card * 0.35)
+    leaves = foliage_cards(name + "_leaves", tips, leafmat, c, card, per, rnd, card * spread_k)
     return trunk, leaves
 
 
@@ -883,8 +884,8 @@ def cedar(name, height_m, seed):
 def trees():
     reset()
     objs = []
-    for i, (seed, lean, tl, tr) in enumerate([(3, 0.25, 3.2, 0.32), (9, -0.18, 2.8, 0.28)]):
-        t, l = broadleaf("sakura%d" % i, SAKURA, tl, tr, lean, "blossom", 1.7, 14, seed, 4)
+    for i, (seed, lean, tl, tr) in enumerate([(3, 0.2, 3.9, 0.32), (9, -0.16, 3.5, 0.28)]):
+        t, l = broadleaf("sakura%d" % i, SAKURA, tl, tr, lean, "blossom", 1.5, 8, seed, 4, 9000, 0.45)
         objs += [t, l]
     t, l = broadleaf("maple0", MAPLE, 2.4, 0.2, 0.15, "maple", 1.4, 16, 21, 3, 6000)
     objs += [t, l]
