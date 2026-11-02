@@ -656,7 +656,9 @@ def pagoda():
     w = 6.0
     for tier in range(5):
         h = 2.6 if tier == 0 else 2.0
-        parts.append(box("body", (w, w, h), (0, 0, z + h / 2), "plaster"))
+        parts.append(box("body", (w, w, h), (0, 0, z + h / 2), "lacquer"))
+        parts.append(box("panel", (w * 0.55, w + 0.04, h * 0.6), (0, 0, z + h * 0.45), "plaster"))
+        parts.append(box("panel", (w + 0.04, w * 0.55, h * 0.6), (0, 0, z + h * 0.45), "plaster"))
         for sx in (-1, 1):
             for sy in (-1, 1):
                 parts.append(box("post", (0.4, 0.4, h), (sx * w / 2, sy * w / 2, z + h / 2), "lacquer"))

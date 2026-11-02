@@ -193,7 +193,7 @@ def build_layout():
     # framing masses only: the stair axis and the hill must stay readable from the bridge
     regions = [  # (x0,x1,z0,z1,count)
         (26, 66, -100, 50, 64), (-60, 22, -108, -76, 46), (-60, -26, 4, 54, 26),
-        (16, 26, -36, -6, 4), (-24, -16, -30, -8, 3), (-40, 30, 46, 56, 14), (12, 30, -104, -74, 12),
+        (16, 26, -36, -6, 4), (-24, -16, -30, -8, 3), (-40, 30, 46, 56, 14), (12, 30, -104, -74, 12), (-34, -25, -36, -8, 6),
     ]
     for (x0, x1, z0, z1, n) in regions:
         tries = 0

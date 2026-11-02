@@ -252,7 +252,7 @@ func _materials() -> void:
 		"dirt_a": tex("dirt_albedo"), "dirt_n": tex("dirt_normal"), "cliff_a": tex("cliff_albedo"), "cliff_n": tex("cliff_normal")})
 	mats["mountain"] = shader_mat("mountains", {"sun_dir": SUN_DIR, "near_col": Color(0.25, 0.28, 0.38), "far_col": Color(0.6, 0.6, 0.74), "sun_side": Color(0.95, 0.72, 0.56)})
 	mats["farland"] = shader_mat("farland", {"sun_dir": SUN_DIR})
-	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.05, 1.0, 1.02), "backlight_col": Color(0.85, 0.6, 0.66), "translucency": 0.65, "wind": 0.1, "ao_strength": 0.55})
+	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.05, 1.0, 1.02), "backlight_col": Color(0.9, 0.66, 0.72), "translucency": 0.75, "wind": 0.1, "ao_strength": 0.35})
 	mats["needles"] = shader_mat("foliage", {"albedo_tex": tex("needle_card"), "tint": Color(0.85, 0.95, 0.8), "backlight_col": Color(0.55, 0.75, 0.3), "translucency": 0.45, "wind": 0.05, "roughness": 0.85})
 	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(1.45, 0.42, 0.26), "backlight_col": Color(0.55, 0.14, 0.06), "translucency": 0.45, "wind": 0.12})
 	mats["leaves"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(0.85, 0.95, 0.75), "backlight_col": Color(0.6, 0.8, 0.3), "translucency": 0.55, "wind": 0.06})
@@ -280,7 +280,7 @@ func _static_world() -> void:
 	place(load(M + "bridge.glb"), Vector3(L.bridge.x, 0.0, L.bridge.z))
 	place(load(M + "bell_pavilion.glb"), V(L.bell), -0.35)
 	place(load(M + "azumaya.glb"), V(L.pavilion), 0.25)
-	place(load(M + "pagoda.glb"), V(L.pagoda), 0.4)
+	place(load(M + "pagoda.glb"), V(L.pagoda), 0.4, 1.3)
 	# warm interior light behind the hall's shoji screens
 	var inner := OmniLight3D.new()
 	inner.position = V(L.hall) + Vector3(0, 3.0, 3.0) * L.hall.s
