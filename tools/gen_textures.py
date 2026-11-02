@@ -270,14 +270,14 @@ def foliage():
         if rr_ > 1.0:   # round, irregular cluster outline (no square card silhouettes)
             continue
         rad = W * r.uniform(0.011, 0.018)
-        base = np.array([0.95, 0.68, 0.79]) * r.uniform(0.88, 1.04) + r.normal(0, 0.025, 3)
+        base = np.array([0.99, 0.84, 0.90]) * r.uniform(0.9, 1.02) + r.normal(0, 0.02, 3)
         rot = r.uniform(0, math.tau)
         for p in range(5):
             a_ = rot + p * math.tau / 5
             px, py = cx + math.cos(a_) * rad * 0.8, cy + math.sin(a_) * rad * 0.8
             c = tuple(int(255 * min(1, v)) for v in base) + (255,)
             d.ellipse([px - rad * 0.62, py - rad * 0.62, px + rad * 0.62, py + rad * 0.62], fill=c)
-        d.ellipse([cx - rad * 0.3, cy - rad * 0.3, cx + rad * 0.3, cy + rad * 0.3], fill=(236, 120, 150, 255))
+        d.ellipse([cx - rad * 0.3, cy - rad * 0.3, cx + rad * 0.3, cy + rad * 0.3], fill=(232, 140, 168, 255))
         d.ellipse([cx - rad * 0.12, cy - rad * 0.12, cx + rad * 0.12, cy + rad * 0.12], fill=(250, 214, 120, 255))
     finish(im, "blossom_card.png", (0.95, 0.75, 0.82))
 

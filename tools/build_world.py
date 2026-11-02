@@ -548,7 +548,7 @@ def bridge():
     n = 44
     for k in range(n):
         y0 = -L / 2 + k * L / n
-        y1 = y0 + L / n * 0.92
+        y1 = y0 + L / n * 0.98
         ym = (y0 + y1) / 2
         z0, z1 = deck_z(y0), deck_z(y1)
         ang = math.atan2(z1 - z0, y1 - y0)
@@ -574,10 +574,6 @@ def bridge():
             z = deck_z(y)
             parts.append(cyl("pier", 0.13, 0.13, z + 1.2, (sx * 0.9, y, (z - 1.2) / 2 - 0.1), "lacquer", 16))
         parts.append(box("crossbeam", (2.4, 0.18, 0.2), (0, y, deck_z(y) - 0.35), "lacquer"))
-    for y in (-L / 2 - 0.4, L / 2 + 0.4):  # stone abutments
-        a = box("abut", (W + 0.3, 0.9, 0.4), (0, y, -0.17), "granite", bev=0.08, seg=3)
-        weather(a, 0.035, 0.3, 2)
-        parts.append(a)
     o = join(parts, "bridge")
     # smooth walkable collision strip + rail walls
     verts, faces = [], []

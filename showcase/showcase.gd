@@ -239,7 +239,7 @@ func _materials() -> void:
 	mats["lantern_glow"] = glow
 	var stone_params := {"albedo_tex": tex("granite_albedo"), "normal_tex": tex("granite_normal"), "rough_tex": tex("granite_rough"), "moss_tex": tex("moss_albedo"), "scale": 0.55, "moss_amount": 0.75}
 	mats["granite"] = shader_mat("stone", stone_params)
-	mats["boulder"] = shader_mat("stone", stone_params.merged({"tint": Color(0.68, 0.66, 0.64), "moss_amount": 0.9, "scale": 0.35}, true))
+	mats["boulder"] = shader_mat("stone", stone_params.merged({"tint": Color(0.6, 0.58, 0.56), "moss_amount": 0.9, "scale": 0.9}, true))
 	mats["stair"] = shader_mat("stone", stone_params.merged({"moss_amount": 0.85, "cell": 0.42}, true))
 	var masonry := stone_params.duplicate()
 	masonry.merge({"albedo_tex": tex("masonry_albedo"), "normal_tex": tex("masonry_normal"), "rough_tex": tex("masonry_rough"), "scale": 0.42, "moss_amount": 0.45}, true)
@@ -252,7 +252,7 @@ func _materials() -> void:
 		"dirt_a": tex("dirt_albedo"), "dirt_n": tex("dirt_normal"), "cliff_a": tex("cliff_albedo"), "cliff_n": tex("cliff_normal")})
 	mats["mountain"] = shader_mat("mountains", {"sun_dir": SUN_DIR, "near_col": Color(0.25, 0.28, 0.38), "far_col": Color(0.6, 0.6, 0.74), "sun_side": Color(0.95, 0.72, 0.56)})
 	mats["farland"] = shader_mat("farland", {"sun_dir": SUN_DIR})
-	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.05, 1.0, 1.02), "backlight_col": Color(0.9, 0.66, 0.72), "translucency": 0.75, "wind": 0.1, "ao_strength": 0.35})
+	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.0, 0.97, 1.0), "backlight_col": Color(0.95, 0.75, 0.8), "translucency": 0.7, "wind": 0.1, "ao_strength": 0.3})
 	mats["needles"] = shader_mat("foliage", {"albedo_tex": tex("needle_card"), "tint": Color(0.85, 0.95, 0.8), "backlight_col": Color(0.55, 0.75, 0.3), "translucency": 0.45, "wind": 0.05, "roughness": 0.85})
 	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(1.45, 0.42, 0.26), "backlight_col": Color(0.55, 0.14, 0.06), "translucency": 0.45, "wind": 0.12})
 	mats["leaves"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(0.85, 0.95, 0.75), "backlight_col": Color(0.6, 0.8, 0.3), "translucency": 0.55, "wind": 0.06})

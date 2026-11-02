@@ -28,7 +28,10 @@ void vertex() {
 
 void fragment() {
 	vec4 c = texture(albedo_tex, UV);
-	ALPHA = c.a;
+	// cards seen nearly edge-on squash their texture into streaks: fade them out
+	vec3 gn = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
+	float facing = abs(dot(gn, normalize(VIEW)));
+	ALPHA = c.a * smoothstep(0.12, 0.35, facing);
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ALPHA_ANTIALIASING_EDGE = 0.25;
 	ALPHA_TEXTURE_COORDINATE = UV * vec2(textureSize(albedo_tex, 0));
