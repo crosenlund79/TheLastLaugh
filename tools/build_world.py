@@ -575,7 +575,7 @@ def bridge():
             parts.append(cyl("pier", 0.13, 0.13, z + 1.2, (sx * 0.9, y, (z - 1.2) / 2 - 0.1), "lacquer", 16))
         parts.append(box("crossbeam", (2.4, 0.18, 0.2), (0, y, deck_z(y) - 0.35), "lacquer"))
     for y in (-L / 2 - 0.4, L / 2 + 0.4):  # stone abutments
-        a = box("abut", (W + 0.8, 1.1, 0.45), (0, y, -0.12), "granite", bev=0.08, seg=3)
+        a = box("abut", (W + 0.3, 0.9, 0.4), (0, y, -0.17), "granite", bev=0.08, seg=3)
         weather(a, 0.035, 0.3, 2)
         parts.append(a)
     o = join(parts, "bridge")
@@ -645,6 +645,32 @@ def azumaya():
     parts.append(lathe("finial", [(0.0, 0.0), (0.18, 0.0), (0.14, 0.2), (0.05, 0.38), (0.0, 0.45)], 12, "bronze", loc=(0, 0, 4.9)))
     o = join(parts, "azumaya")
     export("azumaya.glb", [o] + cols)
+
+
+def pagoda():
+    """Five-storey pagoda for the far ridge (seen across the valley from the overlook)."""
+    reset()
+    parts = []
+    parts.append(box("podium", (9.0, 9.0, 1.4), (0, 0, 0.7), "masonry", bev=0.06))
+    z = 1.4
+    w = 6.0
+    for tier in range(5):
+        h = 2.6 if tier == 0 else 2.0
+        parts.append(box("body", (w, w, h), (0, 0, z + h / 2), "plaster"))
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                parts.append(box("post", (0.4, 0.4, h), (sx * w / 2, sy * w / 2, z + h / 2), "lacquer"))
+        parts.append(box("band", (w + 0.3, w + 0.3, 0.35), (0, 0, z + h - 0.2), "lacquer"))
+        rw = w + 3.6
+        parts.append(roof_mesh("roof", rw, rw, 1.3, z + h, res=(30, 30), upturn=0.55, thick=0.28))
+        z += h + 0.9
+        w *= 0.84
+    parts.append(cyl("sorin", 0.12, 0.08, 6.0, (0, 0, z + 3.0), "bronze", 10))
+    for k in range(9):
+        parts.append(cyl("ring", 0.5 - k * 0.03, 0.5 - k * 0.03, 0.12, (0, 0, z + 0.8 + k * 0.5), "bronze", 16))
+    parts.append(lathe("hoju", [(0.0, 0.0), (0.25, 0.05), (0.28, 0.25), (0.12, 0.5), (0.0, 0.7)], 12, "gold", loc=(0, 0, z + 6.0)))
+    o = join(parts, "pagoda")
+    export("pagoda.glb", [o])
 
 
 def rocks():
@@ -900,17 +926,12 @@ def terrain():
         col.data[i].color = (float(c[0]), float(c[1]), float(c[2]), 1.0)
     smooth_shade(o, 180)
     # far terrain: coarse skirt reaching the horizon (no collision)
-    step2 = 12.0
+    step2 = 8.0
     xs2 = np.arange(-600, 600.1, step2)
     zs2 = np.arange(-700, 400.1, step2)
     X2, Z2 = np.meshgrid(xs2, zs2)
     inner = (X2 > LY.X0 + 6) & (X2 < LY.X1 - 6) & (Z2 > LY.Z0 + 6) & (Z2 < LY.Z1 - 6)
-    Y2 = np.minimum(LY.height(np.clip(X2, -200, 200), np.clip(Z2, -200, 200)), 45.0)
-    far = np.sqrt(X2 ** 2 + (Z2 + 40) ** 2)
-    ridge = (np.sin(X2 * 0.011 + 1.3) * np.cos(Z2 * 0.009) * 0.5 + 0.5) * 70 + (np.sin(X2 * 0.027 - Z2 * 0.021) * 0.5 + 0.5) * 30
-    Y2 = Y2 + ridge * np.clip((far - 160) / 300, 0, 1)
-    valley = np.clip((-X2 - 60) / 200, 0, 1) * np.clip((-Z2 + 40) / 200, 0, 1)
-    Y2 = Y2 * (1 - valley * 0.7) - 30 * valley
+    Y2 = LY.far_height(X2, Z2)
     Y2 = np.where(inner, Y2 - 3.0, Y2)
     n2x, n2z = len(xs2), len(zs2)
     v2 = [G(X2[j, i], Y2[j, i], Z2[j, i]) for j in range(n2z) for i in range(n2x)]
@@ -1055,7 +1076,7 @@ def balustrade():
 
 
 ALL = dict(torii=lambda: torii(False), torii_small=lambda: torii(True), lantern=lantern, hall=hall, bridge=bridge,
-           bell=bell_pavilion, azumaya=azumaya, rocks=rocks, trees=trees, terrain=terrain, stairs=stairs_and_paving,
+           bell=bell_pavilion, azumaya=azumaya, pagoda=pagoda, rocks=rocks, trees=trees, terrain=terrain, stairs=stairs_and_paving,
            bounds=boundaries, balustrade=balustrade)
 
 if __name__ == "__main__":

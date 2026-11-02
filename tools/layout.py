@@ -77,6 +77,17 @@ def height(x, z):
     return y
 
 
+def far_height(x, z):
+    """Coarse horizon terrain beyond the explorable area (same formula Blender bakes)."""
+    x = np.asarray(x, float); z = np.asarray(z, float)
+    y = np.minimum(height(np.clip(x, -200, 200), np.clip(z, -200, 200)), 45.0)
+    far = np.sqrt(x ** 2 + (z + 40) ** 2)
+    ridge = (np.sin(x * 0.011 + 1.3) * np.cos(z * 0.009) * 0.5 + 0.5) * 70 + (np.sin(x * 0.027 - z * 0.021) * 0.5 + 0.5) * 30
+    y = y + ridge * np.clip((far - 160) / 300, 0, 1)
+    valley = np.clip((-x - 60) / 200, 0, 1) * np.clip((-z + 40) / 200, 0, 1)
+    return y * (1 - valley * 0.7) - 30 * valley
+
+
 def pond_r(x, z):
     return np.sqrt(((x - POND_C[0]) / POND_R[0]) ** 2 + ((z - POND_C[1]) / POND_R[1]) ** 2)
 
@@ -182,7 +193,7 @@ def build_layout():
     # framing masses only: the stair axis and the hill must stay readable from the bridge
     regions = [  # (x0,x1,z0,z1,count)
         (26, 66, -100, 50, 64), (-60, 22, -108, -76, 46), (-60, -26, 4, 54, 26),
-        (16, 26, -36, -6, 4), (-24, -16, -30, -8, 3), (-40, 30, 46, 56, 14),
+        (16, 26, -36, -6, 4), (-24, -16, -30, -8, 3), (-40, 30, 46, 56, 14), (12, 30, -104, -74, 12),
     ]
     for (x0, x1, z0, z1, n) in regions:
         tries = 0
@@ -214,6 +225,15 @@ def build_layout():
             rocks.append(P(x, z, s=float(rng.uniform(1.0, 2.6)), v=int(rng.integers(0, 6)), rot=float(rng.uniform(0, 6.28)), sink=0.5))
     L["rocks"] = rocks
     L["hall"] = {"x": 0.0, "y": 12.0, "z": -64.0, "s": 1.35}
+    # the vista: a pagoda on the far ridge, and cedars layering the valley slopes
+    L["pagoda"] = {"x": -118.0, "y": float(far_height(-118.0, 6.0)) - 0.5, "z": 6.0}
+    vista = []
+    while len(vista) < 110:
+        x = rng.uniform(-170, -76); z = rng.uniform(-130, 50)
+        if (x + 118) ** 2 + (z - 6) ** 2 < 14 ** 2:
+            continue
+        vista.append({"x": float(x), "y": float(far_height(x, z)) - 0.3, "z": float(z), "s": float(rng.uniform(0.9, 1.4)), "rot": float(rng.uniform(0, 6.28))})
+    L["vista_cedars"] = vista
     L["bell"] = {"x": 12.5, "y": 12.0, "z": -52.0}
     L["pavilion"] = {"x": -16.0, "y": 12.0, "z": -67.5}
     L["bridge"] = {"x": 0.0, "y": 0.0, "z": 22.0}

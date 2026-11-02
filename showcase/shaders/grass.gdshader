@@ -3,18 +3,20 @@ shader_type spatial;
 render_mode cull_disabled, diffuse_burley;
 
 uniform vec3 root_col : source_color = vec3(0.05, 0.08, 0.02);
-uniform vec3 mid_col : source_color = vec3(0.20, 0.30, 0.07);
-uniform vec3 tip_col : source_color = vec3(0.40, 0.52, 0.14);
+uniform vec3 mid_col : source_color = vec3(0.13, 0.22, 0.06);
+uniform vec3 tip_col : source_color = vec3(0.28, 0.40, 0.11);
 uniform vec3 dry_col : source_color = vec3(0.62, 0.52, 0.25);
 uniform float wind = 0.22;
 
 varying float h;
 varying float seed;
+varying vec3 wpos_g;
 
 void vertex() {
 	h = UV.y;
 	seed = INSTANCE_CUSTOM.r;
 	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	wpos_g = w;
 	float t = TIME;
 	float gust = sin(t * 0.6 + w.x * 0.08 - w.z * 0.05) * 0.5 + 0.5;
 	vec2 bend = vec2(sin(t * 1.7 + w.x * 0.45 + w.z * 0.3), cos(t * 1.3 + w.z * 0.5)) * (0.35 + gust * 0.65);
@@ -26,6 +28,9 @@ void fragment() {
 	vec3 col = mix(root_col, mid_col, smoothstep(0.0, 0.45, h));
 	col = mix(col, tipc, smoothstep(0.4, 1.0, h));
 	col *= 0.85 + seed * 0.3;
+	// broad patches of deeper and fresher green across the meadow
+	float patchv = sin(wpos_g.x * 0.13 + sin(wpos_g.z * 0.11) * 2.0) * cos(wpos_g.z * 0.09 - wpos_g.x * 0.05);
+	col *= 0.82 + 0.3 * (patchv * 0.5 + 0.5);
 	ALBEDO = col;
 	ROUGHNESS = 0.62;
 	SPECULAR = 0.35;

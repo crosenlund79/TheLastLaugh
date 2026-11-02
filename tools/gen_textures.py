@@ -192,7 +192,9 @@ def ground_set():
     layers = fft_noise(N, 2.0, 81, lo=2, aniso=(1.0, 0.08))
     cr = fft_noise(N, 1.4, 82, lo=10)
     hr = 0.55 * (np.sin(layers * 30) * 0.5 + 0.5) + 0.45 * cr
-    rock = colorize(hr, [(0, (0.22, 0.21, 0.20)), (0.5, (0.40, 0.38, 0.35)), (1, (0.58, 0.55, 0.50))])
+    rock = colorize(hr, [(0, (0.12, 0.115, 0.11)), (0.45, (0.27, 0.255, 0.24)), (1, (0.47, 0.44, 0.40))])
+    veg = np.clip((fft_noise(N, 1.8, 83, lo=4) - 0.55) * 3, 0, 1) * (hr < 0.5)
+    rock = rock * (1 - veg[..., None] * 0.7) + np.array([0.13, 0.17, 0.07]) * veg[..., None] * 0.7
     save_rgb(P("cliff_albedo.png"), rock)
     save_rgb(P("cliff_normal.png"), normal_from_height(hr, 5.0))
 
@@ -263,8 +265,9 @@ def foliage():
         rad = W * r.uniform(0.009, 0.013)
         d.ellipse([cx - rad, cy - rad * 0.45, cx + rad, cy + rad * 0.45], fill=(104, 118, 58, 255))
     for k in range(900):
-        cx = r.normal(0.5, 0.21) * W; cy = r.normal(0.45, 0.21) * W
-        if not (0.08 * W < cx < 0.92 * W and 0.06 * W < cy < 0.9 * W):
+        cx = r.normal(0.5, 0.2) * W; cy = r.normal(0.47, 0.2) * W
+        rr_ = math.hypot(cx / W - 0.5, cy / W - 0.47) / 0.42 + r.normal(0, 0.12)
+        if rr_ > 1.0:   # round, irregular cluster outline (no square card silhouettes)
             continue
         rad = W * r.uniform(0.011, 0.018)
         base = np.array([0.95, 0.68, 0.79]) * r.uniform(0.88, 1.04) + r.normal(0, 0.025, 3)

@@ -16,8 +16,8 @@ var VIEWS := [
 	[Vector3(19.0, 9.5, 14.0), Vector3(-3.0, 5.0, -22.0)],          # 2 wide: garden and hillside
 	[Vector3(-0.9, 1.45, -0.6), Vector3(-2.75, 1.55, -2.5)],        # 3 close: stone lantern
 	[Vector3(0.0, 5.75, -17.6), Vector3(0.0, 9.6, -29.0)],          # 4 senbon torii tunnel
-	[Vector3(-1.2, 13.65, -43.0), Vector3(0.4, 16.5, -64.0)],        # 5 courtyard and hall
-	[Vector3(-15.5, 13.65, -45.0), Vector3(-62.0, 6.0, -22.0)],      # 6 overlook into the sunset
+	[Vector3(0.0, 13.65, -43.5), Vector3(0.0, 16.2, -64.0)],         # 5 courtyard and hall
+	[Vector3(-16.0, 13.65, -47.0), Vector3(-118.0, 14.0, 6.0)],      # 6 overlook: pagoda across the valley
 	[Vector3(0.6, 13.75, -40.5), Vector3(0.0, 3.0, 12.0)],          # 7 looking back down
 ]
 
@@ -153,7 +153,7 @@ func _environment() -> void:
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.82, 0.62, 0.58)
 	env.fog_light_energy = 1.0
-	env.fog_sun_scatter = 0.3
+	env.fog_sun_scatter = 0.12
 	env.fog_density = 0.0015
 	env.fog_aerial_perspective = 0.4
 	env.fog_sky_affect = 0.0
@@ -162,7 +162,7 @@ func _environment() -> void:
 	env.volumetric_fog_enabled = true
 	env.volumetric_fog_density = 0.0035
 	env.volumetric_fog_albedo = Color(0.95, 0.85, 0.8)
-	env.volumetric_fog_anisotropy = 0.72
+	env.volumetric_fog_anisotropy = 0.55
 	env.volumetric_fog_length = 90.0
 	env.volumetric_fog_detail_spread = 1.5
 	env.volumetric_fog_gi_inject = 0.6
@@ -239,6 +239,7 @@ func _materials() -> void:
 	mats["lantern_glow"] = glow
 	var stone_params := {"albedo_tex": tex("granite_albedo"), "normal_tex": tex("granite_normal"), "rough_tex": tex("granite_rough"), "moss_tex": tex("moss_albedo"), "scale": 0.55, "moss_amount": 0.55}
 	mats["granite"] = shader_mat("stone", stone_params)
+	mats["boulder"] = shader_mat("stone", stone_params.merged({"tint": Color(0.68, 0.66, 0.64), "moss_amount": 0.9, "scale": 0.35}, true))
 	mats["stair"] = shader_mat("stone", stone_params.merged({"moss_amount": 0.85, "cell": 0.42}, true))
 	var masonry := stone_params.duplicate()
 	masonry.merge({"albedo_tex": tex("masonry_albedo"), "normal_tex": tex("masonry_normal"), "rough_tex": tex("masonry_rough"), "scale": 0.42, "moss_amount": 0.45}, true)
@@ -249,7 +250,8 @@ func _materials() -> void:
 	mats["terrain"] = shader_mat("terrain", {
 		"grass_a": tex("grass_albedo"), "grass_n": tex("grass_normal"), "moss_a": tex("moss_albedo"), "moss_n": tex("moss_normal"),
 		"dirt_a": tex("dirt_albedo"), "dirt_n": tex("dirt_normal"), "cliff_a": tex("cliff_albedo"), "cliff_n": tex("cliff_normal")})
-	mats["mountain"] = shader_mat("mountains", {"sun_dir": SUN_DIR})
+	mats["mountain"] = shader_mat("mountains", {"sun_dir": SUN_DIR, "near_col": Color(0.25, 0.28, 0.38), "far_col": Color(0.6, 0.6, 0.74), "sun_side": Color(0.95, 0.72, 0.56)})
+	mats["farland"] = shader_mat("farland", {"sun_dir": SUN_DIR})
 	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.05, 1.0, 1.02), "backlight_col": Color(0.85, 0.6, 0.66), "translucency": 0.65, "wind": 0.1, "ao_strength": 0.55})
 	mats["needles"] = shader_mat("foliage", {"albedo_tex": tex("needle_card"), "tint": Color(0.85, 0.95, 0.8), "backlight_col": Color(0.55, 0.75, 0.3), "translucency": 0.45, "wind": 0.05, "roughness": 0.85})
 	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(2.1, 0.72, 0.36), "backlight_col": Color(0.8, 0.3, 0.12), "translucency": 0.6, "wind": 0.12})
@@ -273,10 +275,12 @@ func _static_world() -> void:
 			mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		elif mi.name.begins_with("far_terrain"):
 			mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+			mi.set_surface_override_material(0, mats["farland"])
 	place(load(M + "hall.glb"), V(L.hall), 0.0, L.hall.s)
 	place(load(M + "bridge.glb"), Vector3(L.bridge.x, 0.0, L.bridge.z))
 	place(load(M + "bell_pavilion.glb"), V(L.bell), -0.35)
 	place(load(M + "azumaya.glb"), V(L.pavilion), 0.25)
+	place(load(M + "pagoda.glb"), V(L.pagoda), 0.4)
 	# warm interior light behind the hall's shoji screens
 	var inner := OmniLight3D.new()
 	inner.position = V(L.hall) + Vector3(0, 3.0, 3.0) * L.hall.s
@@ -324,7 +328,7 @@ func _props() -> void:
 		var src: MeshInstance3D = variants[int(r.v) % variants.size()]
 		var mi := MeshInstance3D.new()
 		mi.mesh = src.mesh
-		mi.set_surface_override_material(0, mats["granite"])
+		mi.set_surface_override_material(0, mats["boulder"])
 		add_child(mi)
 		mi.position = V(r) - Vector3(0, r.sink * r.s, 0)
 		mi.rotation.y = r.rot
@@ -393,6 +397,9 @@ func _trees() -> void:
 	var groups := [[], [], []]
 	for c in L.cedars:
 		groups[int(abs(c.x * 7.0 + c.z * 3.0)) % 3].append(c)
+	for c in L.vista_cedars:
+		c["vista"] = true
+		groups[int(abs(c.x * 7.0 + c.z * 3.0)) % 3].append(c)
 	var body := StaticBody3D.new()
 	add_child(body)
 	for v in 3:
@@ -410,6 +417,8 @@ func _trees() -> void:
 			mmi.material_override = mats["bark"] if part == "_trunk" else mats["needles"]
 			add_child(mmi)
 		for c in groups[v]:
+			if c.get("vista", false):
+				continue
 			var cs := CollisionShape3D.new()
 			var cy := CylinderShape3D.new()
 			cy.radius = 0.6 * c.s
@@ -675,7 +684,7 @@ func _atmosphere() -> void:
 	mist.size = Vector3(160, 22, 160)
 	mist.position = Vector3(-110, -24, -60)
 	var fm := FogMaterial.new()
-	fm.density = 0.04
+	fm.density = 0.018
 	fm.albedo = Color(0.95, 0.8, 0.8)
 	fm.height_falloff = 0.15
 	fm.edge_fade = 0.4
