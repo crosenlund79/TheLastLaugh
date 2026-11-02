@@ -254,7 +254,7 @@ func _materials() -> void:
 	mats["farland"] = shader_mat("farland", {"sun_dir": SUN_DIR})
 	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.05, 1.0, 1.02), "backlight_col": Color(0.85, 0.6, 0.66), "translucency": 0.65, "wind": 0.1, "ao_strength": 0.55})
 	mats["needles"] = shader_mat("foliage", {"albedo_tex": tex("needle_card"), "tint": Color(0.85, 0.95, 0.8), "backlight_col": Color(0.55, 0.75, 0.3), "translucency": 0.45, "wind": 0.05, "roughness": 0.85})
-	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(2.1, 0.72, 0.36), "backlight_col": Color(0.8, 0.3, 0.12), "translucency": 0.6, "wind": 0.12})
+	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(1.45, 0.42, 0.26), "backlight_col": Color(0.55, 0.14, 0.06), "translucency": 0.45, "wind": 0.12})
 	mats["leaves"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(0.85, 0.95, 0.75), "backlight_col": Color(0.6, 0.8, 0.3), "translucency": 0.55, "wind": 0.06})
 
 
