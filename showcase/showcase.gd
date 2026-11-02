@@ -17,7 +17,7 @@ var VIEWS := [
 	[Vector3(-0.9, 1.45, -0.6), Vector3(-2.75, 1.55, -2.5)],        # 3 close: stone lantern
 	[Vector3(0.0, 5.75, -17.6), Vector3(0.0, 9.6, -29.0)],          # 4 senbon torii tunnel
 	[Vector3(-1.2, 13.65, -43.0), Vector3(0.4, 16.5, -64.0)],        # 5 courtyard and hall
-	[Vector3(-13.0, 13.7, -62.0), Vector3(-70.0, 4.0, -30.0)],      # 6 overlook into the sunset
+	[Vector3(-15.5, 13.65, -45.0), Vector3(-62.0, 6.0, -22.0)],      # 6 overlook into the sunset
 	[Vector3(0.6, 13.75, -40.5), Vector3(0.0, 3.0, 12.0)],          # 7 looking back down
 ]
 

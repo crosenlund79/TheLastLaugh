@@ -663,19 +663,23 @@ def rocks():
         o.scale = (rnd.uniform(0.9, 1.5), rnd.uniform(0.8, 1.3), rnd.uniform(0.45, 0.8))
         activate(o)
         bpy.ops.object.transform_apply(scale=True, location=False)
+        # large fractured planes (voronoi), then medium lumps, then fine chisel detail
         t = bpy.data.textures.new("rv%d" % v, "VORONOI")
-        t.noise_scale = rnd.uniform(0.5, 0.8)
-        d = o.modifiers.new("d1", "DISPLACE"); d.texture = t; d.strength = 0.35; d.mid_level = 0.6
-        t2 = bpy.data.textures.new("rc%d" % v, "CLOUDS"); t2.noise_scale = 0.3; t2.noise_depth = 4
-        d2 = o.modifiers.new("d2", "DISPLACE"); d2.texture = t2; d2.strength = 0.12
-        dec = o.modifiers.new("dec", "DECIMATE"); dec.ratio = 0.22
+        t.noise_scale = rnd.uniform(0.55, 0.85)
+        t.distance_metric = "MINKOVSKY_FOUR"
+        d = o.modifiers.new("d1", "DISPLACE"); d.texture = t; d.strength = 0.45; d.mid_level = 0.6
+        t2 = bpy.data.textures.new("rc%d" % v, "CLOUDS"); t2.noise_scale = 0.35; t2.noise_depth = 3
+        d2 = o.modifiers.new("d2", "DISPLACE"); d2.texture = t2; d2.strength = 0.16
+        t3 = bpy.data.textures.new("rf%d" % v, "VORONOI"); t3.noise_scale = 0.12
+        d3 = o.modifiers.new("d3", "DISPLACE"); d3.texture = t3; d3.strength = 0.05
+        dec = o.modifiers.new("dec", "DECIMATE"); dec.ratio = 0.3
         apply_mods(o)
         # flatten the buried base
         for vtx in o.data.vertices:
             if vtx.co.z < -0.15:
                 vtx.co.z = -0.15 - (vtx.co.z + 0.15) * 0.15
         o.location = (0, 0, 0)
-        smooth_shade(o, 55)
+        smooth_shade(o, 28)  # crisp fracture edges, soft within faces
         objs.append(o)
     for o in objs:
         o.location = (0, 0, 0)
