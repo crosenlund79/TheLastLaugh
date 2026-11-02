@@ -17,7 +17,7 @@ var VIEWS := [
 	[Vector3(-0.9, 1.45, -0.6), Vector3(-2.75, 1.55, -2.5)],        # 3 close: stone lantern
 	[Vector3(0.0, 5.75, -17.6), Vector3(0.0, 9.6, -29.0)],          # 4 senbon torii tunnel
 	[Vector3(0.0, 13.65, -43.5), Vector3(0.0, 16.2, -64.0)],         # 5 courtyard and hall
-	[Vector3(-16.0, 13.65, -47.0), Vector3(-118.0, 14.0, 6.0)],      # 6 overlook: pagoda across the valley
+	[Vector3(-16.0, 13.65, -47.0), Vector3(-92.0, 2.0, -8.0)],       # 6 overlook: pagoda across the valley
 	[Vector3(0.6, 13.75, -40.5), Vector3(0.0, 3.0, 12.0)],          # 7 looking back down
 ]
 
@@ -155,7 +155,7 @@ func _environment() -> void:
 	env.fog_light_energy = 1.0
 	env.fog_sun_scatter = 0.12
 	env.fog_density = 0.0015
-	env.fog_aerial_perspective = 0.4
+	env.fog_aerial_perspective = 0.3
 	env.fog_sky_affect = 0.0
 	env.fog_height = -6.0
 	env.fog_height_density = 0.08

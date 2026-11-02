@@ -226,11 +226,16 @@ def build_layout():
     L["rocks"] = rocks
     L["hall"] = {"x": 0.0, "y": 12.0, "z": -64.0, "s": 1.35}
     # the vista: a pagoda on the far ridge, and cedars layering the valley slopes
-    L["pagoda"] = {"x": -118.0, "y": float(far_height(-118.0, 6.0)) - 0.5, "z": 6.0}
+    px, pz = -92.0, -8.0
+    L["pagoda"] = {"x": px, "y": float(far_height(px, pz)) - 0.5, "z": pz}
+    ox, oz = -16.0, -47.0
     vista = []
     while len(vista) < 110:
         x = rng.uniform(-170, -76); z = rng.uniform(-130, 50)
-        if (x + 118) ** 2 + (z - 6) ** 2 < 14 ** 2:
+        # keep the sightline from the overlook to the pagoda clear (and the pagoda's grounds)
+        dx, dz = px - ox, pz - oz
+        t = max(0.0, min(1.0, ((x - ox) * dx + (z - oz) * dz) / (dx * dx + dz * dz)))
+        if math.hypot(x - (ox + dx * t), z - (oz + dz * t)) < 13 or math.hypot(x - px, z - pz) < 16:
             continue
         vista.append({"x": float(x), "y": float(far_height(x, z)) - 0.3, "z": float(z), "s": float(rng.uniform(0.9, 1.4)), "rot": float(rng.uniform(0, 6.28))})
     L["vista_cedars"] = vista

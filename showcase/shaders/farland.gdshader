@@ -3,8 +3,8 @@
 shader_type spatial;
 render_mode diffuse_burley;
 
-uniform vec3 canopy_dark : source_color = vec3(0.04, 0.07, 0.04);
-uniform vec3 canopy_lit : source_color = vec3(0.12, 0.18, 0.08);
+uniform vec3 canopy_dark : source_color = vec3(0.025, 0.05, 0.03);
+uniform vec3 canopy_lit : source_color = vec3(0.07, 0.13, 0.05);
 uniform vec3 rock : source_color = vec3(0.24, 0.22, 0.21);
 uniform vec3 sun_dir = vec3(-0.6, 0.3, 0.74);
 
