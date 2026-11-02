@@ -16,7 +16,7 @@ var VIEWS := [
 	[Vector3(19.0, 9.5, 14.0), Vector3(-3.0, 5.0, -22.0)],          # 2 wide: garden and hillside
 	[Vector3(-0.9, 1.45, -0.6), Vector3(-2.75, 1.55, -2.5)],        # 3 close: stone lantern
 	[Vector3(0.0, 5.75, -17.6), Vector3(0.0, 9.6, -29.0)],          # 4 senbon torii tunnel
-	[Vector3(3.0, 13.7, -42.0), Vector3(0.0, 16.0, -64.0)],         # 5 courtyard and hall
+	[Vector3(-1.2, 13.65, -43.0), Vector3(0.4, 16.5, -64.0)],        # 5 courtyard and hall
 	[Vector3(-13.0, 13.7, -62.0), Vector3(-70.0, 4.0, -30.0)],      # 6 overlook into the sunset
 	[Vector3(0.6, 13.75, -40.5), Vector3(0.0, 3.0, 12.0)],          # 7 looking back down
 ]
@@ -51,6 +51,7 @@ func _ready() -> void:
 		_grass()
 	_water()
 	_courtyard()
+	_fallen_petals()
 	_atmosphere()
 	_spawn_player()
 
@@ -175,7 +176,7 @@ func _environment() -> void:
 	sun = DirectionalLight3D.new()
 	add_child(sun)
 	sun.look_at_from_position(Vector3.ZERO, -SUN_DIR.normalized(), Vector3.UP)
-	sun.light_color = Color(1.0, 0.76, 0.52)
+	sun.light_color = Color(1.0, 0.8, 0.62)
 	sun.light_energy = 2.6
 	sun.light_angular_distance = 1.2
 	sun.shadow_enabled = true
@@ -192,19 +193,9 @@ func _environment() -> void:
 
 
 func _materials() -> void:
-	mats["lacquer"] = std("lacquer_albedo", "lacquer_normal", "lacquer_rough", 0.9)
-	(mats["lacquer"] as StandardMaterial3D).clearcoat_enabled = true
-	(mats["lacquer"] as StandardMaterial3D).clearcoat = 0.35
-	(mats["lacquer"] as StandardMaterial3D).clearcoat_roughness = 0.35
-	var bl := StandardMaterial3D.new()
-	bl.albedo_color = Color(0.035, 0.03, 0.028)
-	bl.roughness = 0.32
-	bl.normal_enabled = true
-	bl.normal_texture = tex("lacquer_normal")
-	bl.uv1_triplanar = true
-	bl.clearcoat_enabled = true
-	bl.clearcoat = 0.5
-	mats["black_lacquer"] = bl
+	var lq := {"albedo_tex": tex("lacquer_albedo"), "normal_tex": tex("lacquer_normal"), "rough_tex": tex("lacquer_rough")}
+	mats["lacquer"] = shader_mat("lacquer", lq.merged({"tint": Color(0.86, 0.8, 0.78), "rough_bias": 0.12}))
+	mats["black_lacquer"] = shader_mat("lacquer", lq.merged({"use_texture": 0.0, "tint": Color(0.045, 0.04, 0.038), "rough_bias": 0.0, "variation": 0.05}))
 	mats["wood"] = std("wood_albedo", "wood_normal", "wood_rough", 0.55)
 	mats["dark_wood"] = std("wood_albedo", "wood_normal", "wood_rough", 0.55, true, Color(0.42, 0.34, 0.3))
 	mats["plaster"] = std("plaster_albedo", "plaster_normal", "", 0.4)
@@ -248,6 +239,7 @@ func _materials() -> void:
 	mats["lantern_glow"] = glow
 	var stone_params := {"albedo_tex": tex("granite_albedo"), "normal_tex": tex("granite_normal"), "rough_tex": tex("granite_rough"), "moss_tex": tex("moss_albedo"), "scale": 0.55, "moss_amount": 0.55}
 	mats["granite"] = shader_mat("stone", stone_params)
+	mats["stair"] = shader_mat("stone", stone_params.merged({"moss_amount": 0.85, "cell": 0.42}, true))
 	var masonry := stone_params.duplicate()
 	masonry.merge({"albedo_tex": tex("masonry_albedo"), "normal_tex": tex("masonry_normal"), "rough_tex": tex("masonry_rough"), "scale": 0.42, "moss_amount": 0.45}, true)
 	mats["masonry"] = shader_mat("stone", masonry)
@@ -258,9 +250,9 @@ func _materials() -> void:
 		"grass_a": tex("grass_albedo"), "grass_n": tex("grass_normal"), "moss_a": tex("moss_albedo"), "moss_n": tex("moss_normal"),
 		"dirt_a": tex("dirt_albedo"), "dirt_n": tex("dirt_normal"), "cliff_a": tex("cliff_albedo"), "cliff_n": tex("cliff_normal")})
 	mats["mountain"] = shader_mat("mountains", {"sun_dir": SUN_DIR})
-	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.0, 0.95, 0.98), "backlight_col": Color(0.85, 0.6, 0.66), "translucency": 0.65, "wind": 0.1, "ao_strength": 0.55})
+	mats["blossom"] = shader_mat("foliage", {"albedo_tex": tex("blossom_card"), "tint": Color(1.05, 1.0, 1.02), "backlight_col": Color(0.85, 0.6, 0.66), "translucency": 0.65, "wind": 0.1, "ao_strength": 0.55})
 	mats["needles"] = shader_mat("foliage", {"albedo_tex": tex("needle_card"), "tint": Color(0.85, 0.95, 0.8), "backlight_col": Color(0.55, 0.75, 0.3), "translucency": 0.45, "wind": 0.05, "roughness": 0.85})
-	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(3.1, 0.9, 0.35), "backlight_col": Color(1.0, 0.35, 0.12), "translucency": 0.9, "wind": 0.12})
+	mats["maple"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(2.1, 0.72, 0.36), "backlight_col": Color(0.8, 0.3, 0.12), "translucency": 0.6, "wind": 0.12})
 	mats["leaves"] = shader_mat("foliage", {"albedo_tex": tex("leaf_card"), "tint": Color(0.85, 0.95, 0.75), "backlight_col": Color(0.6, 0.8, 0.3), "translucency": 0.55, "wind": 0.06})
 
 
@@ -270,6 +262,11 @@ func _static_world() -> void:
 		var n: Node3D = load(M + name + ".glb").instantiate()
 		add_child(n)
 		apply_materials(n)
+		if name == "stairs":
+			for mi in n.find_children("*", "MeshInstance3D", true, false):
+				for i in mi.mesh.get_surface_count():
+					if mi.get_surface_override_material(i) == mats["granite"]:
+						mi.set_surface_override_material(i, mats["stair"])
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		if mi.name.begins_with("mountains"):
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -552,6 +549,33 @@ func _courtyard() -> void:
 	mi.material_override = shader_mat("gravel", {"albedo_tex": tex("gravel_albedo"), "normal_tex": tex("gravel_normal"), "centers": centers})
 	mi.position = Vector3((pl[0] + pl[1]) / 2.0, 12.02, (pl[2] + pl[3]) / 2.0)
 	add_child(mi)
+
+
+func _fallen_petals() -> void:
+	var raw := FileAccess.get_file_as_bytes("res://showcase/data/petals.bin").to_float32_array()
+	var q := QuadMesh.new()
+	q.size = Vector2(0.06, 0.045)
+	q.orientation = PlaneMesh.FACE_Y
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = tex("petal")
+	m.albedo_color = Color(1.0, 0.86, 0.9)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.roughness = 0.6
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = q
+	mm.instance_count = raw.size() / 5
+	for k in mm.instance_count:
+		var i := k * 5
+		var b := Basis(Vector3.UP, raw[i + 3]).rotated(Vector3(1, 0, 0), raw[i + 4] * 0.4).scaled(Vector3.ONE * (0.8 + raw[i + 4] * 0.5))
+		mm.set_instance_transform(k, Transform3D(b, Vector3(raw[i], raw[i + 1], raw[i + 2])))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.material_override = m
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.visibility_range_end = 40.0
+	add_child(mmi)
 
 
 # ------------------------------------------------------------------ life & air

@@ -246,6 +246,40 @@ def build_grass(L):
     return arr
 
 
+def step_top(z):
+    """Top surface of the actual stone treads (not the smooth ramp)."""
+    z = np.asarray(z, float)
+    y = np.full_like(z, np.nan)
+    for (za, zb, y0) in [(-6.0, -16.0, 0.0), (-18.0, -28.0, 4.0), (-30.0, -40.0, 8.0)]:
+        k = np.floor((za - z) / ((za - zb) / 25))
+        inside = (z <= za) & (z >= zb)
+        y = np.where(inside, y0 + (k + 1) * 0.16, y)
+    for (z0, z1, yy) in [(-16.0, -18.0, 4.0), (-28.0, -30.0, 8.0)]:
+        y = np.where((z < z0) & (z >= z1), yy, y)
+    return y
+
+
+def build_petals(L):
+    """Fallen blossom petals: pooled under each cherry tree and drifted down the stair."""
+    rng = np.random.default_rng(21)
+    out = []
+    for t in L["sakura"]:
+        n = 520
+        a = rng.uniform(0, math.tau, n); r = np.abs(rng.normal(0, 3.2, n)) * t.get("s", 1.0)
+        x = t["x"] + np.cos(a) * r; z = t["z"] + np.sin(a) * r
+        y = height(x, z)
+        ok = pond_mask(x, z, 1.0) < 0.5
+        on_pond = ~ok
+        y = np.where(on_pond, WATER_Y, y)
+        out.append(np.stack([x, y + 0.015, z, rng.uniform(0, math.tau, n), rng.random(n)], -1))
+    n = 1600
+    z = rng.uniform(-40, -6, n); x = rng.normal(0, 0.7, n).clip(-1.5, 1.5)
+    y = step_top(z)
+    m = ~np.isnan(y)
+    out.append(np.stack([x[m], y[m] + 0.012, z[m], rng.uniform(0, math.tau, m.sum()), rng.random(m.sum())], -1))
+    return np.concatenate(out).astype(np.float32)
+
+
 if __name__ == "__main__":
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
     L = build_layout()
@@ -253,4 +287,6 @@ if __name__ == "__main__":
         json.dump(L, f, indent=1)
     g = build_grass(L)
     g.tofile(os.path.join(ROOT, "data", "grass.bin"))
-    print("cedars", len(L["cedars"]), "rocks", len(L["rocks"]), "grass", len(g))
+    p = build_petals(L)
+    p.tofile(os.path.join(ROOT, "data", "petals.bin"))
+    print("cedars", len(L["cedars"]), "rocks", len(L["rocks"]), "grass", len(g), "petals", len(p))

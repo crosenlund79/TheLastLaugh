@@ -575,9 +575,13 @@ def bridge():
             parts.append(cyl("pier", 0.13, 0.13, z + 1.2, (sx * 0.9, y, (z - 1.2) / 2 - 0.1), "lacquer", 16))
         parts.append(box("crossbeam", (2.4, 0.18, 0.2), (0, y, deck_z(y) - 0.35), "lacquer"))
     for y in (-L / 2 - 0.4, L / 2 + 0.4):  # stone abutments
-        a = box("abut", (W + 1.2, 1.6, 0.8), (0, y, -0.15), "granite", bev=0.06, seg=3)
-        weather(a, 0.03, 0.4, 2)
+        a = box("abut", (W + 0.8, 1.1, 0.45), (0, y, -0.12), "granite", bev=0.08, seg=3)
+        weather(a, 0.035, 0.3, 2)
         parts.append(a)
+        for sx in (-1, 1):
+            k = box("abut_side", (0.9, 1.3, 0.7), (sx * (W / 2 + 0.55), y, 0.05), "granite", rot=(0.05, 0.08 * sx, 0.3 * sx), bev=0.12, seg=3)
+            weather(k, 0.06, 0.25, 2)
+            parts.append(k)
     o = join(parts, "bridge")
     # smooth walkable collision strip + rail walls
     verts, faces = [], []
@@ -987,7 +991,8 @@ def stairs_and_paving():
         xs = -1.25
         while xs < 1.25:
             w = min(rnd.uniform(0.6, 1.1), 1.25 - xs)
-            p = box("pave", (w - 0.04, L - 0.04, 0.2), G(xs + w / 2, 12.0 + 0.0, zz - L / 2), "flagstone", rot=(0, 0, rnd.uniform(-0.02, 0.02)), bev=0.03)
+            p = box("pave", (w - 0.05, L - 0.05, 0.16), G(xs + w / 2, 12.06, zz - L / 2), "granite", rot=(0, 0, rnd.uniform(-0.02, 0.02)), bev=0.03)
+            weather(p, 0.008, 0.2, 1)
             parts.append(p)
             xs += w
         zz -= L
@@ -997,7 +1002,7 @@ def stairs_and_paving():
         x = float(LY.path_x(z)) + rnd.uniform(-0.25, 0.25)
         y = float(LY.height(x, z))
         r = rnd.uniform(0.38, 0.52)
-        s = cyl("stone", r, r * 1.04, 0.2, G(x, y + 0.04, z), "flagstone", 14, rot=(0, 0, rnd.uniform(0, 3)), bev=0.04)
+        s = cyl("stone", r, r * 1.04, 0.2, G(x, y + 0.04, z), "granite", 14, rot=(0, 0, rnd.uniform(0, 3)), bev=0.04)
         s.scale = (rnd.uniform(1.0, 1.35), rnd.uniform(0.8, 1.0), 1)
         weather(s, 0.02, 0.2, 1)
         parts.append(s)

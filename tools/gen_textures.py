@@ -258,11 +258,15 @@ def foliage():
             d.line([(x, y), (nx_, ny_)], fill=(58, 38, 30, 255), width=int(W * 0.012 * (1 - s / 16)))
             x, y = nx_, ny_
             ang += r.normal(0, 0.18)
-    for k in range(240):
-        cx = r.normal(0.5, 0.2) * W; cy = r.normal(0.42, 0.2) * W
+    for k in range(60):  # a few young bronze-green leaves tucked among the flowers
+        cx = r.normal(0.5, 0.2) * W; cy = r.normal(0.5, 0.2) * W
+        rad = W * r.uniform(0.009, 0.013)
+        d.ellipse([cx - rad, cy - rad * 0.45, cx + rad, cy + rad * 0.45], fill=(104, 118, 58, 255))
+    for k in range(900):
+        cx = r.normal(0.5, 0.21) * W; cy = r.normal(0.45, 0.21) * W
         if not (0.08 * W < cx < 0.92 * W and 0.06 * W < cy < 0.9 * W):
             continue
-        rad = W * r.uniform(0.022, 0.034)
+        rad = W * r.uniform(0.011, 0.018)
         base = np.array([0.95, 0.68, 0.79]) * r.uniform(0.88, 1.04) + r.normal(0, 0.025, 3)
         rot = r.uniform(0, math.tau)
         for p in range(5):
@@ -272,10 +276,6 @@ def foliage():
             d.ellipse([px - rad * 0.62, py - rad * 0.62, px + rad * 0.62, py + rad * 0.62], fill=c)
         d.ellipse([cx - rad * 0.3, cy - rad * 0.3, cx + rad * 0.3, cy + rad * 0.3], fill=(236, 120, 150, 255))
         d.ellipse([cx - rad * 0.12, cy - rad * 0.12, cx + rad * 0.12, cy + rad * 0.12], fill=(250, 214, 120, 255))
-    for k in range(40):  # a few young leaves
-        cx = r.normal(0.5, 0.22) * W; cy = r.normal(0.5, 0.22) * W
-        rad = W * 0.025
-        d.ellipse([cx - rad, cy - rad * 0.45, cx + rad, cy + rad * 0.45], fill=(120, 140, 60, 255))
     finish(im, "blossom_card.png", (0.95, 0.75, 0.82))
 
     # --- sugi (Cryptomeria) spray card: a dense fan of rope-like branchlets covered in

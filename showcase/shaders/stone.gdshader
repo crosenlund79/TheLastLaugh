@@ -11,6 +11,7 @@ uniform float scale = 0.6;
 uniform float moss_amount = 0.5;
 uniform float moss_height = 99.0;   // moss fades out above this world height
 uniform bool object_space = false;
+uniform float cell = 0.0;          // > 0: tonal variation per cell (e.g. individual stair treads)
 
 varying vec3 ppos;
 varying vec3 pnrm;
@@ -46,6 +47,15 @@ void fragment() {
 	moss *= 1.0 - smoothstep(moss_height - 0.5, moss_height + 0.5, wp.y);
 	moss = smoothstep(0.35, 0.65, moss);
 	vec3 m = texture(moss_tex, wp.xz * 0.9).rgb;
+	if (cell > 0.0) {
+		float hv = fract(sin(dot(floor(wp.xz / cell), vec2(12.9898, 78.233))) * 43758.5453);
+		a *= 0.82 + hv * 0.3;
+		// treads are worn smooth and pale along the walking line, darker toward the edges
+		float walk = smoothstep(1.4, 0.3, abs(wp.x));
+		a = mix(a * 0.88, a * 1.06, walk * up);
+		moss *= 1.0 - walk * 0.7;
+		moss = max(moss, smoothstep(1.2, 1.65, abs(wp.x)) * up * 0.8);
+	}
 	ALBEDO = mix(a, m, moss);
 	NORMAL_MAP = mix(n, vec3(0.5, 0.5, 1.0), moss * 0.6);
 	ROUGHNESS = mix(r, 0.95, moss);

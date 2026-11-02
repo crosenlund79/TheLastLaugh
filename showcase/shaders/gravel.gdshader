@@ -20,13 +20,13 @@ void fragment() {
 		float zone = 1.0 - smoothstep(centers[i].w, centers[i].w + 0.6, dd);
 		if (zone > ringw) { ringw = zone; coord = mix(coord, dd, zone); }
 	}
-	float rake = sin(coord * 3.14159 * 2.0 / 0.17);
+	float rake = sin(coord * 3.14159 * 2.0 / 0.12);
 	vec2 uv = wpos.xz * 0.9;
 	vec3 a = texture(albedo_tex, uv).rgb;
 	vec3 n = texture(normal_tex, uv).rgb;
-	a *= 0.86 + rake * 0.1;
-	ALBEDO = a * 1.05;
+	a *= 0.92 + rake * 0.06;
+	ALBEDO = mix(a, vec3(dot(a, vec3(0.33))), 0.5) * vec3(0.97, 0.98, 1.02) * 1.12;
 	vec3 grad = vec3(0.0);
-	NORMAL_MAP = normalize(n * 2.0 - 1.0 + vec3(0.0, cos(coord * 3.14159 * 2.0 / 0.17) * 0.6, 0.0)) * 0.5 + 0.5;
+	NORMAL_MAP = normalize(n * 2.0 - 1.0 + vec3(0.0, cos(coord * 3.14159 * 2.0 / 0.12) * 0.35, 0.0)) * 0.5 + 0.5;
 	ROUGHNESS = 0.9;
 }
