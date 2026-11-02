@@ -19,8 +19,9 @@ void vertex() {
 	float h = clamp(VERTEX.y * 0.12, 0.0, 1.5);
 	float t = TIME;
 	float gust = sin(t * 0.37 + w.x * 0.05) * 0.5 + 0.5;
-	vec3 sway = vec3(sin(t * 1.21 + w.x * 0.31 + w.z * 0.17), 0.0, cos(t * 0.93 + w.z * 0.29)) * wind * h * (0.6 + gust);
-	VERTEX += (inverse(mat3(MODEL_MATRIX)) * sway);
+	// trees are only yaw-rotated and uniformly scaled, so local-space sway is visually equivalent
+	// and avoids a per-vertex matrix inverse
+	VERTEX.xz += vec2(sin(t * 1.21 + w.x * 0.31 + w.z * 0.17), cos(t * 0.93 + w.z * 0.29)) * wind * h * (0.6 + gust);
 	VERTEX += NORMAL * sin(t * 3.7 + dot(w, vec3(2.3, 1.7, 3.1))) * 0.025 * wind * 8.0;
 	wpos = w;
 }

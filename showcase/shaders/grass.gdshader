@@ -18,8 +18,7 @@ void vertex() {
 	float t = TIME;
 	float gust = sin(t * 0.6 + w.x * 0.08 - w.z * 0.05) * 0.5 + 0.5;
 	vec2 bend = vec2(sin(t * 1.7 + w.x * 0.45 + w.z * 0.3), cos(t * 1.3 + w.z * 0.5)) * (0.35 + gust * 0.65);
-	vec3 wb = vec3(bend.x, 0.0, bend.y * 0.5) * wind * h * h;
-	VERTEX += inverse(mat3(MODEL_MATRIX)) * wb;
+	VERTEX.xz += vec2(bend.x, bend.y * 0.5) * wind * h * h;
 }
 
 void fragment() {

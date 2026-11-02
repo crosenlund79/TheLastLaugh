@@ -183,7 +183,7 @@ func _environment() -> void:
 	sun.shadow_normal_bias = 1.2
 	sun.shadow_blur = 1.2
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	sun.directional_shadow_max_distance = 140.0
+	sun.directional_shadow_max_distance = 100.0
 	sun.directional_shadow_blend_splits = true
 	sun.directional_shadow_split_1 = 0.06
 	sun.directional_shadow_split_2 = 0.16
