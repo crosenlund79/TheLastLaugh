@@ -6,6 +6,10 @@ This is a graphics experiment. There's no gameplay, only walking.
 
 The carnival horror prototype that used to live in this repository is preserved on the branch `backup/carnival-horror-prototype` (commit `8ee1928`).
 
+![Arrival](screenshots/01_arrival.png)
+
+More views are in `screenshots/`. All of them were captured from the running Godot 4.3 Forward+ renderer at 1280×720.
+
 ## Run
 
 Open the folder in Godot 4.3 or later, then press F5. A dedicated GPU is recommended.
