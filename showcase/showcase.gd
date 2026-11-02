@@ -17,7 +17,7 @@ var VIEWS := [
 	[Vector3(-0.9, 1.45, -0.6), Vector3(-2.75, 1.55, -2.5)],        # 3 close: stone lantern
 	[Vector3(0.0, 5.75, -17.6), Vector3(0.0, 9.6, -29.0)],          # 4 senbon torii tunnel
 	[Vector3(0.0, 13.65, -43.5), Vector3(0.0, 16.2, -64.0)],         # 5 courtyard and hall
-	[Vector3(-16.0, 13.65, -47.0), Vector3(-92.0, 2.0, -8.0)],       # 6 overlook: pagoda across the valley
+	[Vector3(-18.7, 13.65, -47.5), Vector3(-92.0, -1.0, -8.0)],      # 6 overlook: pagoda across the valley
 	[Vector3(0.6, 13.75, -40.5), Vector3(0.0, 3.0, 12.0)],          # 7 looking back down
 ]
 
@@ -158,7 +158,7 @@ func _environment() -> void:
 	env.fog_aerial_perspective = 0.3
 	env.fog_sky_affect = 0.0
 	env.fog_height = -6.0
-	env.fog_height_density = 0.08
+	env.fog_height_density = 0.035
 	env.volumetric_fog_enabled = true
 	env.volumetric_fog_density = 0.0035
 	env.volumetric_fog_albedo = Color(0.95, 0.85, 0.8)
@@ -237,7 +237,7 @@ func _materials() -> void:
 	glow.emission = Color(1.0, 0.62, 0.3)
 	glow.emission_energy_multiplier = 5.0
 	mats["lantern_glow"] = glow
-	var stone_params := {"albedo_tex": tex("granite_albedo"), "normal_tex": tex("granite_normal"), "rough_tex": tex("granite_rough"), "moss_tex": tex("moss_albedo"), "scale": 0.55, "moss_amount": 0.55}
+	var stone_params := {"albedo_tex": tex("granite_albedo"), "normal_tex": tex("granite_normal"), "rough_tex": tex("granite_rough"), "moss_tex": tex("moss_albedo"), "scale": 0.55, "moss_amount": 0.75}
 	mats["granite"] = shader_mat("stone", stone_params)
 	mats["boulder"] = shader_mat("stone", stone_params.merged({"tint": Color(0.68, 0.66, 0.64), "moss_amount": 0.9, "scale": 0.35}, true))
 	mats["stair"] = shader_mat("stone", stone_params.merged({"moss_amount": 0.85, "cell": 0.42}, true))
